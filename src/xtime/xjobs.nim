@@ -1,6 +1,6 @@
 # x-time job registry: single active job + history (mirror of server.js jobs)
 import std/[json, asyncdispatch, times, options]
-import xconfig, xstore, xengine, xllm, xstatus
+import xconfig, xstore, xengine
 
 type
   XJob* = ref object

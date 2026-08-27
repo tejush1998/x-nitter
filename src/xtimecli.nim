@@ -1,5 +1,5 @@
 # x-time CLI: poll / view / reclassify (replaces index.js)
-import std/[os, strutils, json, asyncdispatch, times, options, algorithm, parseopt, sequtils, sets, tables]
+import std/[strutils, asyncdispatch, options, parseopt, sequtils, sets, tables]
 import xtime/[xconfig, xstore, xscraper, xllm, xstatus, xengine]
 
 type CliFlags = object

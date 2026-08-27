@@ -1,5 +1,5 @@
 # x-time persistent store: SQLite (mirror of lib/store.js)
-import std/[json, os, strutils, times, options, algorithm, tables, sets, sequtils]
+import std/[json, strutils, times, options, algorithm, tables, sets, sequtils]
 import ./vendor/db_sqlite
 
 type
@@ -112,6 +112,12 @@ proc tweetFromRowWithExtras(r: Row): Tweet =
 const tweetCols* = "id, text, author_id, author_name, author_username, created_at, " &
   "like_count, retweet_count, reply_count, view_count, links, media, promoted, " &
   "raw, fetched_at, batch, liked"
+
+# qualified variant for JOIN queries (tw.* returns physical column order,
+# which differs from tweetCols once migrations have appended columns)
+const twTweetCols* = "tw.id, tw.text, tw.author_id, tw.author_name, tw.author_username, " &
+  "tw.created_at, tw.like_count, tw.retweet_count, tw.reply_count, tw.view_count, " &
+  "tw.links, tw.media, tw.promoted, tw.raw, tw.fetched_at, tw.batch, tw.liked"
 
 proc openStore*(path = "feed.db"): XStore =
   let db = open(connection = path, user = "", password = "", database = "")
@@ -317,7 +323,7 @@ proc getLikedTopicsView*(store: XStore, includeNoise: bool, batch = ""): seq[Top
 
 proc getLikedTweetsByTopic*(store: XStore, topic: string, limit = 100,
     includeNoise = false, batch = ""): seq[Tweet] =
-  var q = "SELECT tw.*, tt.confidence, tt.noise, tw.lang, tw.translation, tw.summary FROM tweets tw" &
+  var q = "SELECT " & twTweetCols & ", tt.confidence, tt.noise, tw.lang, tw.translation, tw.summary FROM tweets tw" &
     " JOIN tweet_topics tt ON tt.tweet_id = tw.id" &
     " JOIN topics t ON t.id = tt.topic_id AND tw.liked = 1 WHERE t.name = " & esc(topic)
   if not includeNoise:
@@ -413,7 +419,7 @@ proc getTopicsView*(store: XStore, includeNoise: bool, batch = ""): seq[TopicRow
 
 proc getTweetsByTopic*(store: XStore, topic: string, limit = 20,
     includeNoise = false, batch = ""): seq[Tweet] =
-  var q = "SELECT tw.*, tt.confidence, tt.noise, tw.lang, tw.translation, tw.summary FROM tweets tw" &
+  var q = "SELECT " & twTweetCols & ", tt.confidence, tt.noise, tw.lang, tw.translation, tw.summary FROM tweets tw" &
     " JOIN tweet_topics tt ON tt.tweet_id = tw.id" &
     " JOIN topics t ON t.id = tt.topic_id WHERE t.name = " & esc(topic)
   if not includeNoise:

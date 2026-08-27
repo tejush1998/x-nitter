@@ -1,5 +1,5 @@
 # x-time jester router: UI + API (replaces server.js; CORS hack removed)
-import std/[json, strutils, asyncdispatch, options, uri, os]
+import std/[json, strutils, asyncdispatch, options, os]
 import jester
 import xconfig, xstore, xscraper, xstatus, xengine, xjobs
 import ../routes/router_utils
