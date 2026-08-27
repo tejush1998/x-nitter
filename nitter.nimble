@@ -5,7 +5,7 @@ author        = "zedeus"
 description   = "An alternative front-end for Twitter"
 license       = "AGPL-3.0"
 srcDir        = "src"
-bin           = @["nitter"]
+bin           = @["nitter", "xtimecli"]
 
 
 # Dependencies

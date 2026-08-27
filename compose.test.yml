@@ -1,0 +1,24 @@
+# Extra test: run the official nitter image via OrbStack on :8081.
+# Does NOT touch the native build (which owns :8080). Uses its own redis.
+services:
+
+  nitter:
+    image: zedeus/nitter:latest
+    container_name: nitter-test
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - ./nitter.container.conf:/src/nitter.conf:ro
+      - ./sessions.jsonl:/src/sessions.jsonl:ro
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: nitter-test-redis
+    command: redis-server --save 60 1 --loglevel warning
+    restart: unless-stopped
+
+volumes:
+  nitter-redis:

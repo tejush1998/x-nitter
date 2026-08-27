@@ -18,3 +18,9 @@ dump.rdb
 nimbledeps/
 nimble.paths
 nimble.develop
+!public/xtime/*.html
+cookies.json
+xtime-env
+.env
+.DS_Store
+feed.db*

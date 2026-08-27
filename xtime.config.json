@@ -1,0 +1,54 @@
+{
+  "topics": [],
+  "maxTopics": 20,
+  "pages": 3,
+  "countPerPage": 20,
+  "minPollIntervalSec": 60,
+  "linkBase": "http://localhost:8080",
+  "providers": {
+    "gemini": {
+      "model": "gemini-3.7-flash",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "apiKeyEnv": "GEMINI_KEY",
+      "timeoutMs": 60000
+    },
+    "crof": {
+      "model": "glm-5.2",
+      "baseUrl": "https://crof.ai/v1",
+      "apiKeyEnv": "CROF_KEY",
+      "timeoutMs": 60000
+    },
+    "meta": {
+      "model": "muse-spark-1.2-contributor",
+      "baseUrl": "https://api.meta.ai/v1",
+      "apiKeyEnv": "META_KEY",
+      "timeoutMs": 120000
+    },
+    "zen": {
+      "model": "glm-5.2",
+      "baseUrl": "https://opencode.ai/zen/v1",
+      "apiKeyEnv": "OPENCODE_KEY",
+      "timeoutMs": 120000
+    },
+    "deepseek": {
+      "model": "deepseek-v4-flash",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "apiKeyEnv": "DEEPSEEK_KEY",
+      "timeoutMs": 60000
+    }
+  },
+  "classify": {
+    "provider": "gemini",
+    "mode": "single",
+    "chunkSize": 20,
+    "chunkConcurrency": 3,
+    "fallback": ["crof", "meta"]
+  },
+  "translate": {
+    "enabled": true,
+    "provider": "meta",
+    "chunkSize": 20,
+    "chunkConcurrency": 3,
+    "fallback": ["crof"]
+  }
+}

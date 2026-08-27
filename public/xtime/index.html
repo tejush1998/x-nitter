@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feed Topics</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>For You feed</h1>
+    <div class="controls">
+      <select id="batch" title="Scrape batch" aria-label="Scrape batch"></select>
+      <label class="noise-toggle">
+        <input type="checkbox" id="noise" />
+        Show noise
+      </label>
+      <button id="scrape" class="btn btn-primary">Scrape</button>
+      <button id="reclassify" class="btn">Reclassify</button>
+    </div>
+  </header>
+
+  <div id="statusBar" class="statusbar" hidden></div>
+
+  <main>
+    <section class="stats" id="stats"></section>
+    <section class="topic-list" id="topicList"></section>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/app.js"></script>
+</body>
+</html>

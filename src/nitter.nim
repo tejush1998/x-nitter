@@ -11,15 +11,21 @@ import views/[general, about]
 import routes/[
   preferences, timeline, status, media, search, rss, list, community, debug,
   unsupported, embed, resolver, broadcast, space, article, router_utils]
+import xtime/xrouter
 
 const instancesUrl = "https://github.com/zedeus/nitter/wiki/Instances"
 const issuesUrl = "https://github.com/zedeus/nitter/issues"
+
+loadDotEnv()
 
 let
   configPath = getEnv("NITTER_CONF_FILE", "./nitter.conf")
   (cfg, fullCfg) = getConfig(configPath)
 
   sessionsPath = getEnv("NITTER_SESSIONS_FILE", "./sessions.jsonl")
+
+  xconf = loadXTimeConf()
+  xtStore = openStore()
 
 initSessionPool(cfg, sessionsPath)
 
@@ -67,6 +73,10 @@ createRssRouter(cfg)
 createBroadcastRouter(cfg)
 createSpaceRouter(cfg)
 createDebugRouter(cfg)
+
+createXTimeRouter(xtStore, xconf)
+
+maybeAutoScrape(xtStore, xconf)
 
 settings:
   port = Port(cfg.port)
@@ -125,6 +135,8 @@ routes:
     resp Http429, showError(
       &"Instance has no auth tokens, or is fully rate limited.<br>Use {link} or try again later.", cfg)
 
+  # xtime routes first: /api/* must not be shadowed by /@name/* routes
+  extend xtime, ""
   extend articleRoute, ""
   extend rss, ""
   extend status, ""
