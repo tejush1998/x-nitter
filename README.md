@@ -1,75 +1,101 @@
-# Nitter
+# x-nitter
 
-> [!NOTE]
-> On 24 August 2026 cease and desist letters were sent by X Corp. demanding a permanent takedown of Nitter instances and the project's repository.
+A personal fork of [Nitter](https://github.com/zedeus/nitter) that merges the
+x-time feed engine into the Nitter server. Nitter's lightweight front-end stays
+as-is; x-nitter adds an authenticated "For You"-style feed dashboard on top.
 
-A free and open source alternative Twitter front-end focused on privacy and
-performance. \
-Inspired by the [Invidious](https://github.com/iv-org/invidious) project.
+## What this adds over Nitter
 
-## Donations
+- **`/xtime/` dashboard** — a feed UI served at `http://localhost:8080/xtime/`
+  on the same server as Nitter.
+- **Logged-in timeline scraping** — fetches your For You timeline with your own
+  X session through `scraper.py` (uses the
+  [twifork](https://pypi.org/project/twifork/) twikit fork with browser
+  impersonation), in configurable batches.
+- **Local tweet store** — every batch is persisted to a local SQLite database
+  (`feed.db`), so browsing is instant and works offline.
+- **LLM classification & translation** — tweets are classified into your
+  configured topics and optionally translated, via any OpenAI-compatible API
+  (provider, model, base URL and API-key env var are set in
+  `xtime.config.json`).
+- **Interactions** — like/unlike tweets and follow/unfollow accounts directly
+  from the UI (POST `/api/like`, `/api/follow`, GET `/api/following`).
+- **Scrape API** — trigger scrapes and reclassification from the UI or curl
+  (`POST /api/scrape`, `POST /api/reclassify`, `GET /api/snapshot`).
+- **CLI** — `src/xtimecli.nim` offers the same scrape/view/reclassify flow from
+  the terminal.
+- All upstream Nitter features remain: no-JS front-end, RSS, themes,
+  lightweight pages.
 
-**Liberapay**: https://liberapay.com/zedeus<br>
-**Patreon**: https://patreon.com/nitter<br>
-**Ko-fi**: https://ko-fi.com/zedeus<br>
-**BTC**: bc1qpqpzjkcpgluhzf7x9yqe7jfe8gpfm5v08mdr55<br>
-**ETH**: 0x24a0DB59A923B588c7A5EBd0dBDFDD1bCe9c4460<br>
-**XMR**: 42hKayRoEAw4D6G6t8mQHPJHQcXqofjFuVfavqKeNMNUZfeJLJAcNU19i1bGdDvcdN6romiSscWGWJCczFLe9RFhM3d1zpL<br>
-**SOL**: FF5bheiD5AqPEdc3eyjymJ8AoMRF1hS78Ht6FiSZZF1t<br>
-**$Nitter**: 4fSxCKc91ELQYVdv3tmHW8R15KoALPwEngyoQe1Xpump<br>
-**ZEC**: u1vndfqtzyy6qkzhkapxelel7ams38wmfeccu3fdpy2wkuc4erxyjm8ncjhnyg747x6t0kf0faqhh2hxyplgaum08d2wnj4n7cyu9s6zhxkqw2aef4hgd4s6vh5hpqvfken98rg80kgtgn64ff70djy7s8f839z00hwhuzlcggvefhdlyszkvwy3c7yw623vw3rvar6q6evd3xcvveypt
+## Cookies
 
-## Features
+x-nitter drives your own logged-in X account, so it needs two session cookies:
+`auth_token` and `ct0`.
 
-- No JavaScript or ads
-- All requests go through the backend, client never talks to Twitter
-- Prevents Twitter from tracking your IP or JavaScript fingerprint
-- Uses Twitter's unofficial API (no developer account required)
-- Lightweight (for [@nim_lang](https://nitter.net/nim_lang), 60KB vs 784KB from twitter.com)
-- RSS feeds
-- Themes
-- Mobile support (responsive design)
-- AGPLv3 licensed, no proprietary instances permitted
+1. Log in to x.com in your browser.
+2. Open DevTools → Application (Firefox: Storage) → Cookies → `https://x.com`.
+3. Copy the values of `auth_token` and `ct0`.
+4. Put them in a `.env` file in the repo root:
 
-## Roadmap
+   ```
+   AUTH_TOKEN=<auth_token value>
+   CT0=<ct0 value>
+   ```
 
-- Embeds
-- Account system with timeline support
-- Archiving tweets/profiles
-- Developer API
+5. Generate the Nitter session file (used by Nitter's own API requests):
 
-## Resources
+   ```bash
+   node --env-file=.env make_sessions.mjs
+   ```
 
-The wiki contains
-[a list of instances](https://github.com/zedeus/nitter/wiki/Instances) and
-[browser extensions](https://github.com/zedeus/nitter/wiki/Extensions)
-maintained by the community.
+   This writes `sessions.jsonl`. Re-run it whenever you refresh the cookies.
 
-## Why?
+- Alternatively, `scraper.py` accepts a `cookies.json` file (either a
+  `{name: value}` dict or a DevTools "export cookies" array).
+- Cookies expire periodically — if you see "Cookies are expired or invalid",
+  re-export both values and regenerate `sessions.jsonl`.
+- Treat these cookies like passwords: `.env`, `cookies.json` and
+  `sessions.json*` are gitignored and must never be committed.
 
-It's impossible to use Twitter without JavaScript enabled, and as of 2024 you
-need to sign up. For privacy-minded folks, preventing JavaScript analytics and
-IP-based tracking is important, but apart from using a VPN and uBlock/uMatrix,
-it's impossible. Despite being behind a VPN and using heavy-duty adblockers,
-you can get accurately tracked with your [browser's
-fingerprint](https://restoreprivacy.com/browser-fingerprinting/), [no
-JavaScript required](https://noscriptfingerprint.com/). This all became
-particularly important after Twitter [removed the
-ability](https://www.eff.org/deeplinks/2020/04/twitter-removes-privacy-option-and-shows-why-we-need-strong-privacy-laws)
-for users to control whether their data gets sent to advertisers.
+## xtime configuration
 
-Using an instance of Nitter (hosted on a VPS for example), you can browse
-Twitter without JavaScript while retaining your privacy. In addition to
-respecting your privacy, Nitter is on average around 15 times lighter than
-Twitter, and in most cases serves pages faster (eg. timelines load 2-4x faster).
+`xtime.config.json` (repo root, gitignored) controls the feed:
 
-In the future a simple account system will be added that lets you follow Twitter
-users, allowing you to have a clean chronological timeline without needing a
-Twitter account.
+- `topics` — the topic list the classifier sorts tweets into
+- `providers` + `classify.provider` / `translate.provider` — an
+  OpenAI-compatible endpoint: `model`, `baseUrl`, `apiKeyEnv` (name of an env
+  var holding the API key, e.g. `OPENAI_API_KEY` set in `.env`), `timeoutMs`
+- `translate.enabled` — turn translation on/off
+- `pages`, `countPerPage`, `maxTopics`, `minPollIntervalSec`, `linkBase`
 
-## Screenshot
+## Python helper
 
-![nitter](/screenshot.png)
+The scrape/like/follow backend shells out to `scraper.py`, which needs the
+twifork package. Create a virtualenv in the repo root:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install twifork
+```
+
+## Running
+
+The easiest way on macOS is the launcher script, which builds the binary if
+needed, starts Valkey, regenerates sessions and opens the UI:
+
+```bash
+xnitter.sh
+```
+
+or manually:
+
+```bash
+nim c -d:ssl --threads:off -o:./xnitter src/nitter.nim
+./xnitter
+```
+
+Nitter listens on the address/port set in `nitter.conf` (default
+`127.0.0.1:8080`); the xtime dashboard is at `/xtime/`.
 
 ## Installation
 
