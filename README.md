@@ -44,7 +44,7 @@ non-addictive, without endless scrolling.
 ## Cookies
 
 Everything logged-in runs on your own X session, which means two cookies from
-a browser where you are logged in to x.com: `auth_token` and `ct0`.
+a browser where you are logged in to x.com: `auth_token` and `ct0`. (Doesnt expire for months)
 
 1. Log in to x.com in your browser.
 2. Open DevTools → Application (Firefox: Storage) → Cookies → `https://x.com`.
