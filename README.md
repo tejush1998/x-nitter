@@ -13,6 +13,15 @@ timeline without ads, algorithm noise or the official app. Nitter's front-end
   <img src="screenshots/2.png" alt="Screenshot 2" width="49%">
 </p>
 
+## Why?
+
+This replaces the X timeline with a click-and-fetch timeline. It de-slopifys
+your feed and sorts it by topics. If you want to fetch the timeline again, you
+gotta burn tokens again — though it's not that expensive.
+It supports Like/Follow to nudge the timeline in the right direction.
+There's no ability to reply or post, though — that's to keep the experience
+non-addictive, without endless scrolling.
+
 ## How it works
 
 - **Feed dashboard** — a web UI served at `http://localhost:8080/xtime/` from
