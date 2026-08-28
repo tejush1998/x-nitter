@@ -8,6 +8,11 @@ sort the feed into topics you define — so you can browse, search and like your
 timeline without ads, algorithm noise or the official app. Nitter's front-end
 (public profiles, tweet pages, RSS) still works exactly as before.
 
+<p align="center">
+  <img src="screenshots/1.png" alt="Screenshot 1" width="49%">
+  <img src="screenshots/2.png" alt="Screenshot 2" width="49%">
+</p>
+
 ## How it works
 
 - **Feed dashboard** — a web UI served at `http://localhost:8080/xtime/` from
