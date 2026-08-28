@@ -1,5 +1,5 @@
 (() => {
-  const API = "http://localhost:4310";
+  const API = "";
 
   const resetToDefault = (btn) => {
     btn.classList.remove("follow-pending", "follow-failed");

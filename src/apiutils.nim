@@ -193,8 +193,6 @@ template fetchImpl(result, fetchBody) {.dirty.} =
     raise e
   except BadClientError as e:
     raise e
-  except OSError as e:
-    raise e
   except Exception as e:
     let s = session.pretty
     echo "error: ", e.name, ", msg: ", e.msg, ", session: ", s, ", url: ", url

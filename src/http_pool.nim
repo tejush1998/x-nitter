@@ -39,11 +39,17 @@ template use*(pool: HttpPool; heads: HttpHeaders; body: untyped): untyped =
 
   try:
     body
-  except BadClientError, ProtocolError:
-    # Twitter returned 503 or closed the connection, we need a new client
+  except BadClientError, ProtocolError, HttpRequestError, OSError:
+    # Connection-level failure (503, closed conn, ETIMEDOUT): discard the
+    # connection so it is not reused, then retry once with a fresh one
     pool.release(c, true)
     badClient = false
     c = pool.acquire(heads)
-    body
+    try:
+      body
+    except BadClientError, ProtocolError, HttpRequestError, OSError:
+      pool.release(c, true)
+      badClient = true
+      raise
   finally:
     pool.release(c, badClient)

@@ -141,14 +141,18 @@ async def main():
 
     from twikit.errors import Unauthorized
 
-    try:
-        await client.user()
-    except Unauthorized:
-        print("Cookies are expired or invalid. Re-export auth_token + ct0 from your browser.", file=sys.stderr)
-        sys.exit(2)
-    except Exception as exc:
-        print(f"Auth check failed: {exc}", file=sys.stderr)
-        sys.exit(2)
+    for attempt in range(3):
+        try:
+            await client.user()
+            break
+        except Unauthorized:
+            print("Cookies are expired or invalid. Re-export auth_token + ct0 from your browser.", file=sys.stderr)
+            sys.exit(2)
+        except Exception as exc:
+            if attempt == 2:
+                print(f"Auth check failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+                sys.exit(2)
+            await asyncio.sleep(1.5)
 
     if args.like:
         from twikit.client.gql import Endpoint
