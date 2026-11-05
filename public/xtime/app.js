@@ -531,6 +531,39 @@ $("#noise").addEventListener("change", (e) => {
   render().catch((err) => toast(err.message, "error"));
 });
 
+// Labs: experimental toggles, stored server-side so tweet pages honour them
+async function loadExperiments() {
+  try {
+    const exp = await api("/api/experiments");
+    $("#labRecommend").checked = Boolean(exp.recommend);
+    $("#labRecommend").disabled = false;
+  } catch (err) {
+    console.warn("[app:labs] load failed:", err.message);
+  }
+}
+$("#labRecommend").addEventListener("change", async (e) => {
+  const on = e.target.checked;
+  e.target.disabled = true;
+  try {
+    const exp = await api("/api/experiments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recommend: on }),
+    });
+    e.target.checked = Boolean(exp.recommend);
+    toast(`Tweet recommendations ${exp.recommend ? "on" : "off"}`, "success", 1500);
+  } catch (err) {
+    e.target.checked = !on;
+    toast(`Couldn't change Labs setting: ${err.message}`, "error", 5000);
+  } finally {
+    e.target.disabled = false;
+  }
+});
+document.addEventListener("click", (e) => {
+  if (!$("#labs").contains(e.target)) $("#labs").open = false;
+});
+loadExperiments();
+
 render().catch((err) => {
   $("#topicList").innerHTML = "";
   const empty = document.createElement("div");

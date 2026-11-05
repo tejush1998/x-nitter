@@ -29,6 +29,11 @@ type
     timeoutMs*: int
     reasoningEffort*: string
 
+  RecommendOpts* = object
+    providers*: seq[LlmProvider]  # tried in order until one answers
+    replySample*: int
+    picks*: int
+
   XTimeConf* = object
     autoScrape*: bool
     topics*: seq[string]
@@ -39,6 +44,7 @@ type
     linkBase*: string
     classify*: ClassifyOpts
     translate*: TranslateOpts
+    recommend*: RecommendOpts
 
 proc loadDotEnv*(path = ".env") =
   ## Minimal .env loader: KEY=VALUE lines, does not override existing env.
@@ -119,3 +125,13 @@ proc loadXTimeConf*(path = "xtime.config.json"): XTimeConf =
     )
   )
   result.autoScrape = if raw{"autoScrape"}.isNil: true else: raw{"autoScrape"}.getBool()
+
+  # tweet-page recommendations; the provider defaults to classify's
+  let r = raw{"recommend"}
+  result.recommend = RecommendOpts(
+    providers: @[parseProvider(raw{"providers"}, r{"provider"}.getStr(providerName))],
+    replySample: optInt(r, "replySample", 8),
+    picks: optInt(r, "picks", 5)
+  )
+  for f in r{"fallback"}.getElems():
+    result.recommend.providers.add parseProvider(raw{"providers"}, f.getStr())

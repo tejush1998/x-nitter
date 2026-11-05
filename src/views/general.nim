@@ -52,6 +52,7 @@ proc renderHead*(prefs: Prefs; cfg: Config; req: Request; titleText=""; desc="";
   buildHtml(head):
     link(rel="stylesheet", type="text/css", href="/css/style.css?v=106")
     link(rel="stylesheet", type="text/css", href="/css/fontello.css?v=7")
+    link(rel="stylesheet", type="text/css", href="/css/recommend.css?v=5")
 
     if theme.len > 0:
       link(rel="stylesheet", type="text/css", href=(&"/css/themes/{theme}.css"))
@@ -82,6 +83,7 @@ proc renderHead*(prefs: Prefs; cfg: Config; req: Request; titleText=""; desc="";
       script(src="/js/infiniteScroll.js", `defer`="")
 
     script(src="/js/follow.js?v=3", `defer`="")
+    script(src="/js/recommend.js?v=5", `defer`="")
 
     title:
       if titleText.len > 0:

@@ -1,21 +1,27 @@
 # x-time jester router: UI + API (replaces server.js; CORS hack removed)
 import std/[json, strutils, asyncdispatch, options, os]
 import jester
-import xconfig, xstore, xscraper, xstatus, xengine, xjobs
+import xconfig, xstore, xscraper, xstatus, xengine, xjobs, xrecommend
 import ../routes/router_utils
 
 # Re-export what nitter.nim needs, but NOT xstore.Tweet / Assignment
 # (clashes with types.Tweet inside jester's routes macro expansion).
-export xconfig, xjobs, xengine, xscraper, xstatus
+export xconfig, xjobs, xengine, xscraper, xstatus, xrecommend
 export xstore except Tweet, Assignment
 
 var
   xtimeStore*: XStore = nil
   xtimeConf*: XTimeConf
 
+const recommendMetaKey* = "experiment.recommend"
+
+proc experimentsJson*(): JsonNode =
+  %*{"recommend": recommendEnabled()}
+
 proc createXTimeRouter*(store: XStore, conf: XTimeConf) =
   xtimeStore = store
   xtimeConf = conf
+  initRecommend(conf.recommend, store.getMeta(recommendMetaKey) == "1")
   router xtime:
 
     get "/xtime":
@@ -160,6 +166,36 @@ proc createXTimeRouter*(store: XStore, conf: XTimeConf) =
         resp Http502, @[("Content-Type", "application/json")], $ %*{"error": e.msg}
       except CatchableError as e:
         resp Http502, @[("Content-Type", "application/json")], $ %*{"error": e.msg}
+
+    get "/api/recommend":
+      # Polled by /js/recommend.js on tweet pages; starts a run if there is none.
+      let id = @"id"
+      if id.len == 0 or id.len > 19 or not id.allCharsInSet(Digits):
+        resp Http400, @[("Content-Type", "application/json")], $ %*{"error": "id is required"}
+      elif not recommendEnabled():
+        resp Http409, @[("Content-Type", "application/json")], $ %*{
+          "error": "Recommendations are turned off (dashboard → Labs)", "disabled": true
+        }
+      else:
+        let run = ensureRecommend(id, refresh = @"refresh" == "1")
+        respJson recommendJson(run, requestPrefs(), @"path")
+
+    get "/api/experiments":
+      respJson experimentsJson()
+
+    post "/api/experiments":
+      # Labs toggles from the dashboard, e.g. {"recommend": true}; persisted in meta.
+      try:
+        let body = parseJson(request.body)
+        if body{"recommend"}.isNil or body{"recommend"}.kind != JBool:
+          resp Http400, @[("Content-Type", "application/json")], $ %*{"error": "recommend (bool) is required"}
+        else:
+          let on = body{"recommend"}.getBool()
+          xtimeStore.setMeta(recommendMetaKey, if on: "1" else: "0")
+          setRecommendEnabled(on)
+          respJson experimentsJson()
+      except CatchableError as e:
+        resp Http400, @[("Content-Type", "application/json")], $ %*{"error": e.msg}
 
     get "/api/jobs/@id":
       let job = findJob(@"id")

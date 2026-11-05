@@ -110,6 +110,12 @@ proc renderConversation*(conv: Conversation; prefs: Prefs; path: string;
 
     renderToTop(focus="#m")
 
+proc renderRecommendLayout*(conversation: VNode; tweetId: string): VNode =
+  ## x-time: the conversation plus a sidebar that /js/recommend.js fills in.
+  buildHtml(tdiv(class="recommend-layout")):
+    conversation
+    tdiv(class="recommend-panel", id="recommend", data-tweetid=tweetId)
+
 proc renderEditHistory*(edits: EditHistory; prefs: Prefs; path: string): VNode =
   buildHtml(tdiv(class="edit-history")):
     tdiv(class="latest-edit"):

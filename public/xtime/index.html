@@ -21,6 +21,19 @@
       </label>
       <button id="scrape" class="btn btn-primary">Scrape</button>
       <button id="reclassify" class="btn">Reclassify</button>
+      <details class="labs" id="labs">
+        <summary class="btn" title="Experimental features">Labs</summary>
+        <div class="labs-menu">
+          <div class="labs-title">Experimental</div>
+          <label class="labs-item">
+            <input type="checkbox" id="labRecommend" disabled />
+            <span>
+              <b>Tweet recommendations</b>
+              <small>Opening a tweet adds a sidebar of 4–5 related tweets. The LLM writes three searches from the tweet and its replies, then picks the best results. Uses LLM calls for every tweet you open.</small>
+            </span>
+          </label>
+        </div>
+      </details>
     </div>
   </header>
 

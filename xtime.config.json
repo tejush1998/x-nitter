@@ -58,5 +58,11 @@
     "chunkSize": 20,
     "chunkConcurrency": 3,
     "fallback": ["crof"]
+  },
+  "recommend": {
+    "provider": "astorias",
+    "fallback": ["meta"],
+    "replySample": 8,
+    "picks": 4
   }
 }

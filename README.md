@@ -37,6 +37,15 @@ non-addictive, without endless scrolling.
   configured topics and optionally translated, via any OpenAI-compatible API.
 - **Interactions** — like/unlike tweets and follow/unfollow accounts directly
   from the dashboard.
+- **Tweet recommendations (experimental, off by default)** — switch it on
+  from the dashboard's **Labs** menu; the setting is saved in the local
+  database. While it is on, every tweet page gets a sidebar of 4-5 tweets
+  worth reading next. The LLM reads the tweet and a sample of its replies,
+  writes three X searches (the core topic, an angle the replies raise, and
+  fresh takes), then picks the best results with a one-line reason each.
+  Results are kept in memory per tweet until the server restarts; the
+  sidebar's Refresh button runs it again. The LLM provider and fallbacks are
+  set under `recommend` in `xtime.config.json`.
 - **Scrape API** — trigger scrapes and reclassification from the UI or curl.
 - All upstream Nitter features remain: no-JS front-end, RSS, themes,
   lightweight pages.

@@ -6,11 +6,13 @@ import jester, karax/vdom
 import router_utils
 import ".."/[types, formatters, api]
 import ../views/[general, status]
+import ../xtime/xrecommend
 
 export uri, sequtils, options, sugar
 export router_utils
 export api, formatters
 export status
+export xrecommend
 
 proc createStatusRouter*(cfg: Config) =
   router status:
@@ -70,7 +72,19 @@ proc createStatusRouter*(cfg: Config) =
         tweetUrl = getUrlPrefix(cfg) & "/" & conv.tweet.user.username & "/status/" & $conv.tweet.id
         oembedUrl = getUrlPrefix(cfg) & "/api/oembed?url=" & encodeUrl(tweetUrl)
 
-      let html = renderConversation(conv, prefs, getPath() & "#m", sort)
+      # x-time (experimental, toggled from the dashboard's Labs menu): start
+      # (or reuse) this tweet's recommendations run with the conversation
+      # already fetched; the sidebar polls it via /api/recommend. The replies
+      # still feed the run but aren't shown on the page.
+      var html: VNode
+      if recommendEnabled():
+        discard ensureRecommend(id, conv, retryFailed = true)
+        var convPrefs = prefs
+        convPrefs.hideReplies = true
+        html = renderRecommendLayout(
+          renderConversation(conv, convPrefs, getPath() & "#m", sort), id)
+      else:
+        html = renderConversation(conv, prefs, getPath() & "#m", sort)
       resp renderMain(html, request, cfg, prefs, title, desc, ogTitle,
                       images=images, video=video, oembed=oembedUrl)
 

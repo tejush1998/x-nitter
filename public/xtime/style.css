@@ -408,3 +408,43 @@ main { max-width: 860px; margin: 0 auto; padding: 24px; }
   justify-content: flex-end;
   gap: 10px;
 }
+
+/* Labs: experimental feature toggles (header dropdown) */
+.labs { position: relative; }
+.labs > summary { list-style: none; user-select: none; }
+.labs > summary::-webkit-details-marker { display: none; }
+.labs[open] > summary { border-color: var(--accent); color: var(--accent); }
+
+.labs-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.labs-title {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.labs-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.labs-item input { accent-color: var(--accent); margin-top: 3px; flex-shrink: 0; }
+.labs-item input:disabled + span { opacity: 0.6; }
+.labs-item small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }

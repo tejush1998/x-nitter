@@ -1,0 +1,253 @@
+/* x-time: tweet-page recommendations sidebar (filled by /js/recommend.js).
+   Kept out of the Sass build; uses the theme variables so every theme works. */
+
+.recommend-layout {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 10px;
+}
+
+.recommend-layout > .conversation {
+  flex: 0 1 600px;
+  min-width: 0;
+  margin: 0;
+}
+
+.recommend-panel {
+  flex: 0 0 380px;
+  min-width: 0;
+  position: sticky;
+  top: 10px;
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+}
+
+body.fixed-nav .recommend-panel {
+  top: 60px;
+  max-height: calc(100vh - 70px);
+}
+
+@media (max-width: 1020px) {
+  .recommend-layout {
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+  }
+
+  .recommend-layout > .conversation,
+  .recommend-panel {
+    flex: none;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .recommend-panel {
+    position: static;
+    max-height: none;
+    margin-bottom: 20px;
+  }
+}
+
+.recommend-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--bg_panel);
+  border-bottom: 1px solid var(--border_grey);
+  color: var(--fg_color);
+  font-weight: bold;
+}
+
+.recommend-refresh {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent_border);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.recommend-refresh:hover {
+  background-color: var(--bg_hover);
+}
+
+.recommend-refresh:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.recommend-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background-color: var(--bg_panel);
+  color: var(--fg_faded);
+  font-size: 14px;
+}
+
+.recommend-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recommend-step.running {
+  color: var(--fg_color);
+}
+
+.recommend-step.error {
+  color: #e0245e;
+}
+
+.recommend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--border_grey);
+}
+
+.recommend-step.done .recommend-dot,
+.recommend-step.running .recommend-dot {
+  background-color: var(--accent);
+}
+
+.recommend-step.running .recommend-dot {
+  animation: recommend-pulse 1s ease-in-out infinite;
+}
+
+.recommend-step.error .recommend-dot {
+  background-color: #e0245e;
+}
+
+@keyframes recommend-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.recommend-step-note {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--fg_faded);
+}
+
+.recommend-error,
+.recommend-empty,
+.recommend-note {
+  padding: 10px 12px;
+  background-color: var(--bg_panel);
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.recommend-error {
+  color: #e0245e;
+}
+
+.recommend-empty,
+.recommend-note {
+  color: var(--fg_faded);
+}
+
+.recommend-note {
+  border-bottom: 1px solid var(--border_grey);
+}
+
+.recommend-pick {
+  background-color: var(--bg_panel);
+}
+
+.recommend-pick + .recommend-pick {
+  margin-top: 10px;
+}
+
+.recommend-tag {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid var(--accent_border);
+  border-radius: 3px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.recommend-searches {
+  margin-top: 10px;
+  background-color: var(--bg_panel);
+  color: var(--fg_faded);
+  font-size: 13px;
+}
+
+.recommend-searches summary {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.recommend-search {
+  display: grid;
+  gap: 2px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border_grey);
+}
+
+.recommend-search-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recommend-search-label {
+  color: var(--fg_color);
+  font-weight: bold;
+}
+
+.recommend-search-query {
+  font-family: monospace;
+  word-break: break-word;
+}
+
+.recommend-search-meta {
+  font-size: 12px;
+}
+
+.recommend-search-meta.error {
+  color: #e0245e;
+}
+
+.recommend-meta {
+  padding: 6px 12px 8px;
+  border-top: 1px solid var(--border_grey);
+  font-size: 12px;
+}
+
+/* keep picks scannable in the narrow column; the card links to the full tweet */
+.recommend-pick .tweet-content,
+.recommend-pick .quote-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.recommend-pick .attachments,
+.recommend-pick .card-container {
+  max-height: 220px;
+  overflow: hidden;
+}
+
+.recommend-pick .quote-text {
+  -webkit-line-clamp: 3;
+}
+
+.recommend-pick .quote-media-container {
+  display: none;
+}
