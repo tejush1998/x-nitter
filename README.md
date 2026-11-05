@@ -78,7 +78,11 @@ gitignored):
 - `topics` — the topic list the LLM sorts tweets into
 - `providers` + `classify.provider` / `translate.provider` — an
   OpenAI-compatible endpoint: `model`, `baseUrl`, `apiKeyEnv` (name of an env
-  var holding the API key, e.g. `OPENAI_API_KEY` set in `.env`), `timeoutMs`
+  var holding the API key, e.g. `OPENAI_API_KEY` set in `.env`), `timeoutMs`,
+  and optionally `reasoningEffort` (sent as `reasoning_effort`, e.g. `"low"`)
+- `classify.mode` — `"single"` sends the whole batch in one call; `"chunked"`
+  first names up to `maxTopics` topics for the whole batch, then sends
+  `chunkSize` tweets per call, `chunkConcurrency` at a time, using only those
 - `translate.enabled` — turn translation on/off
 - `pages`, `countPerPage`, `maxTopics`, `minPollIntervalSec`, `linkBase`
 

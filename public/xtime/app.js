@@ -9,6 +9,8 @@ const state = {
   batch: null, // null = latest batch
   currentBatch: null,
   _lastActive: null,
+  view: "topics",
+  nounTweets: {}, // noun -> tweets cache for the current snapshot
 };
 
 function el(tag, className, text) {
@@ -206,6 +208,69 @@ function topicEl(t) {
   return box;
 }
 
+function nounEl(n, maxCount) {
+  const box = document.createElement("section");
+  box.className = "noun";
+  const ratio = maxCount > 0 ? n.count / maxCount : 0;
+  box.dataset.w = ratio >= 0.5 ? "3" : ratio >= 0.2 ? "2" : "1";
+
+  const head = document.createElement("div");
+  head.className = "noun-head";
+
+  const chevron = document.createElement("span");
+  chevron.className = "chevron";
+  const name = document.createElement("span");
+  name.className = "noun-name";
+  name.textContent = n.noun;
+  const count = document.createElement("span");
+  count.className = "noun-count";
+  count.textContent = `${n.count} ${n.count === 1 ? "tweet" : "tweets"}`;
+
+  head.append(chevron, name, count);
+
+  const body = document.createElement("div");
+  body.className = "noun-body";
+
+  const loadTweets = async () => {
+    body.innerHTML = "";
+    body.appendChild(el("div", "empty", "Loading…"));
+    try {
+      const q = [`noun=${encodeURIComponent(n.noun)}`, `noise=${state.noise ? 1 : 0}`];
+      if (state.batch) q.push(`batch=${encodeURIComponent(state.batch)}`);
+      if (state.likedOnly) q.push("liked=1");
+      const res = await api(`/api/nouns?${q.join("&")}`);
+      body.innerHTML = "";
+      if (!res.tweets.length) {
+        body.appendChild(el("div", "empty", "No tweets for this noun."));
+      }
+      for (const tw of res.tweets) body.appendChild(tweetEl(tw));
+      state.nounTweets[n.noun] = res.tweets;
+    } catch (err) {
+      body.innerHTML = "";
+      body.appendChild(el("div", "empty", `Failed to load: ${err.message}`));
+      toast(`Failed to load tweets for "${n.noun}": ${err.message}`, "error", 5000);
+    }
+  };
+
+  head.addEventListener("click", async () => {
+    if (box.classList.contains("open")) {
+      box.classList.remove("open");
+      localStorage.setItem(`nounOpen:${n.noun}`, "0");
+      return;
+    }
+    if (!body.childNodes.length) await loadTweets();
+    box.classList.add("open");
+    localStorage.setItem(`nounOpen:${n.noun}`, "1");
+  });
+  if (localStorage.getItem(`nounOpen:${n.noun}`) === "1") {
+    loadTweets();
+    box.classList.add("open");
+  }
+
+  box.append(head, body);
+  return box;
+}
+
 function fmtBatch(id, latest) {
   if (!id) return "—";
   const batchDate = latest || Number(id);
@@ -271,12 +336,33 @@ async function render() {
   $("#stats").appendChild(lastSpan);
 
   $("#topicList").innerHTML = "";
+  $("#nounList").innerHTML = "";
+  const showTopics = state.view === "topics";
+  $("#topicList").hidden = !showTopics;
+  $("#nounList").hidden = showTopics;
+  const emptyMsg = showTopics
+    ? (state.likedOnly
+      ? "No liked tweets in this batch."
+      : "No topics yet. Run a scrape or reclassify to populate.")
+    : "No nouns yet. Nouns are extracted when tweets are classified — run a scrape or reclassify.";
+  if (!showTopics) {
+    state.nounTweets = {};
+    const nouns = snap.nouns ?? [];
+    if (!nouns.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = emptyMsg;
+      $("#nounList").appendChild(empty);
+      return;
+    }
+    const maxCount = nouns.length ? nouns[0].count : 0;
+    for (const n of nouns) $("#nounList").appendChild(nounEl(n, maxCount));
+    return;
+  }
   if (!rows.length) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = state.likedOnly
-      ? "No liked tweets in this batch."
-      : "No topics yet. Run a scrape or reclassify to populate.";
+    empty.textContent = emptyMsg;
     $("#topicList").appendChild(empty);
     return;
   }
@@ -417,6 +503,16 @@ async function runJob(kind) {
 }
 
 console.log("[app] listeners attaching...");
+for (const tab of document.querySelectorAll("#viewToggle .view-tab")) {
+  tab.addEventListener("click", () => {
+    state.view = tab.dataset.view;
+    for (const t of document.querySelectorAll("#viewToggle .view-tab")) {
+      t.classList.toggle("active", t === tab);
+      t.setAttribute("aria-selected", t === tab ? "true" : "false");
+    }
+    render().catch((err) => toast(err.message, "error"));
+  });
+}
 $("#scrape").addEventListener("click", () => {
   console.log("[app] scrape button clicked");
   runJob("scrape");
@@ -442,6 +538,25 @@ render().catch((err) => {
   empty.textContent = `Failed to load: ${err.message}`;
   $("#topicList").appendChild(empty);
 });
+
+let scrapePromptShown = false;
+async function maybePromptScrape() {
+  if (scrapePromptShown || state.busy) return;
+  try {
+    const snap = await api(`/api/snapshot?noise=${state.noise ? 1 : 0}`);
+    if (snap.hasBatchToday === false) {
+      scrapePromptShown = true;
+      $("#scrapeModal").showModal();
+    }
+  } catch (err) {
+    console.warn("[app:prompt] snapshot check failed:", err.message);
+  }
+}
+$("#scrapeModal").addEventListener("close", (e) => {
+  if (e.target.returnValue === "scrape") runJob("scrape");
+});
+
+maybePromptScrape();
 
 refreshStatus().catch(() => {});
 setInterval(refreshStatus, 2000);

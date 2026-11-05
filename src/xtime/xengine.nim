@@ -1,5 +1,5 @@
 # x-time engine: scrape → classify → translate orchestration (mirror of lib/engine.js)
-import std/[json, asyncdispatch, strutils, sets, options, sequtils]
+import std/[json, asyncdispatch, strutils, sets, options, sequtils, times]
 import xconfig, xstore, xscraper, xllm, xstatus
 
 proc tweetsJson*(tweets: seq[Tweet]): JsonNode =
@@ -56,6 +56,13 @@ proc persistLanguages*(store: XStore, assignments: seq[Assignment]) =
       entries.add (a.tweetId, a.lang)
   store.setTweetLanguages(entries)
 
+proc persistNouns*(store: XStore, assignments: seq[Assignment]) =
+  var entries: seq[(string, seq[string])] = @[]
+  for a in assignments:
+    if a.nouns.len > 0:
+      entries.add (a.tweetId, a.nouns)
+  store.setTweetNouns(entries)
+
 proc translateMissing*(store: XStore, tweets: seq[Tweet], conf: XTimeConf) {.async.} =
   ## Translate stored tweets that have a non-English lang and no translation.
   if not conf.translate.enabled: return
@@ -100,6 +107,7 @@ proc scrapePoll*(store: XStore, conf: XTimeConf, count: int, pages: int,
       if assignments.len > 0:
         store.assignTopics(assignments)
         persistLanguages(store, assignments)
+        persistNouns(store, assignments)
 
     await translateMissing(store, tweets, conf)
     finishClassify(true, message = "Classified " & $assignments.len &
@@ -127,6 +135,7 @@ proc classifyStoredUnassigned*(store: XStore, conf: XTimeConf,
     if assignments.len > 0:
       store.assignTopics(assignments)
       persistLanguages(store, assignments)
+      persistNouns(store, assignments)
     await translateMissing(store, tweets, conf)
     finishClassify(true, message = "Classified " & $assignments.len & " tweets")
     return %*{
@@ -147,10 +156,12 @@ proc classifyStored*(store: XStore, conf: XTimeConf, batch: string,
   beginClassify(source, jobId, 0)
   try:
     store.clearTopicAssignments(tweets.mapIt(it.id))
+    store.clearTweetNouns(tweets.mapIt(it.id))
     let assignments = await classifyTweets(tweets, conf.classify)
     if assignments.len > 0:
       store.assignTopics(assignments)
       persistLanguages(store, assignments)
+      persistNouns(store, assignments)
     await translateMissing(store, tweets, conf)
     finishClassify(true, message = "Classified " & $assignments.len & " tweets")
     return %*{
@@ -175,6 +186,14 @@ proc pollTooSoonNow*(store: XStore, minSec: int): Option[int] =
     some(int((minMs - elapsedMs + 999) div 1000))
   else:
     none(int)
+
+proc getNounsView*(store: XStore, includeNoise: bool, batch: string,
+    likedOnly: bool): JsonNode =
+  let counts = store.getNounCounts(includeNoise, batch, likedOnly)
+  var items: seq[JsonNode] = @[]
+  for (noun, count) in counts:
+    items.add %*{"noun": noun, "count": count}
+  %*items
 
 proc getFeedSnapshot*(store: XStore, conf: XTimeConf, includeNoise: bool,
     batch: string, likedOnly: bool): JsonNode =
@@ -244,7 +263,10 @@ proc getFeedSnapshot*(store: XStore, conf: XTimeConf, includeNoise: bool,
     "stats": stats,
     "batches": batchesJson,
     "currentBatch": currentBatch,
+    "hasBatchToday": store.hasBatchOnDay(now()),
     "rows": rows,
+    "nouns": getNounsView(store, includeNoise, currentBatch, likedOnly),
     "likedOnly": likedOnly,
     "linkBase": conf.linkBase
   }
+

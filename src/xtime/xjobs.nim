@@ -106,6 +106,11 @@ proc startJob*(kind: string, source: string,
 
 proc maybeAutoScrape*(store: XStore, conf: XTimeConf) =
   ## Auto-scrape on boot when no batch exists for today and poll interval passed.
+  ## Disabled when autoScrape is false in xtime.config.json — use the UI Scrape
+  ## button (POST /api/scrape) to run manually.
+  if not conf.autoScrape:
+    echo "[xtime] auto-scrape: disabled (autoScrape=false in xtime.config.json)"
+    return
   let remaining = pollTooSoonNow(store, conf.minPollIntervalSec)
   if store.hasBatchOnDay(now()): return
   if remaining.isSome: return

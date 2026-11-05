@@ -10,6 +10,7 @@ type
     noise*: bool
     lang*: string
     summary*: string
+    nouns*: seq[string]
 
   Tweet* = ref object
     id*: string
@@ -152,6 +153,11 @@ proc openStore*(path = "feed.db"): XStore =
     confidence REAL,
     noise INTEGER DEFAULT 0,
     PRIMARY KEY (tweet_id, topic_id)
+  )""")
+  db.exec(sql"""CREATE TABLE IF NOT EXISTS tweet_nouns (
+    tweet_id TEXT NOT NULL REFERENCES tweets(id),
+    noun TEXT NOT NULL,
+    PRIMARY KEY (tweet_id, noun)
   )""")
   db.exec(sql"""CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
@@ -426,6 +432,56 @@ proc getTweetsByTopic*(store: XStore, topic: string, limit = 20,
     q.add " AND tt.noise = 0"
   if batch.len > 0:
     q.add " AND tw.batch = " & esc(batch)
+  q.add " ORDER BY COALESCE(tw.created_at, tw.fetched_at) DESC, tw.fetched_at DESC LIMIT " & $limit
+  for row in store.db.getAllRows(sql(q)):
+    result.add tweetFromRowWithExtras(row)
+
+proc setTweetNouns*(store: XStore, entries: seq[(string, seq[string])]) =
+  ## Replace stored nouns for the given tweets.
+  for (id, nouns) in entries:
+    store.db.exec(sql("DELETE FROM tweet_nouns WHERE tweet_id = " & esc(id)))
+    for noun in nouns:
+      store.db.exec(sql("INSERT OR IGNORE INTO tweet_nouns (tweet_id, noun) VALUES (" &
+        esc(id) & ", " & esc(noun) & ")"))
+
+proc clearTweetNouns*(store: XStore, ids: seq[string]) =
+  if ids.len == 0: return
+  var i = 0
+  while i < ids.len:
+    let chunk = ids[i ..< min(i + 500, ids.len)]
+    let parts = chunk.mapIt(esc(it))
+    store.db.exec(sql("DELETE FROM tweet_nouns WHERE tweet_id IN (" & parts.join(",") & ")"))
+    i += 500
+
+proc getNounCounts*(store: XStore, includeNoise: bool, batch = "",
+    likedOnly = false, limit = 200): seq[tuple[noun: string, count: int]] =
+  var q = "SELECT tn.noun, COUNT(DISTINCT tn.tweet_id) count FROM tweet_nouns tn" &
+    " JOIN tweets tw ON tw.id = tn.tweet_id"
+  var conds: seq[string] = @[]
+  if not includeNoise:
+    conds.add "NOT EXISTS (SELECT 1 FROM tweet_topics tt WHERE tt.tweet_id = tn.tweet_id AND tt.noise = 1)"
+  if batch.len > 0:
+    conds.add "tw.batch = " & esc(batch)
+  if likedOnly:
+    conds.add "tw.liked = 1"
+  if conds.len > 0:
+    q.add " WHERE " & conds.join(" AND ")
+  q.add " GROUP BY tn.noun HAVING count > 1 ORDER BY count DESC, tn.noun LIMIT " & $limit
+  for row in store.db.getAllRows(sql(q)):
+    result.add (row[0], row[1].parseInt)
+
+proc getTweetsByNoun*(store: XStore, noun: string, limit = 20,
+    includeNoise = false, batch = "", likedOnly = false): seq[Tweet] =
+  var q = "SELECT " & twTweetCols & ", tt.confidence, tt.noise, tw.lang, tw.translation, tw.summary" &
+    " FROM tweets tw JOIN tweet_nouns tn ON tn.tweet_id = tw.id" &
+    " LEFT JOIN tweet_topics tt ON tt.tweet_id = tw.id" &
+    " WHERE tn.noun = " & esc(noun)
+  if not includeNoise:
+    q.add " AND (tt.tweet_id IS NULL OR tt.noise = 0)"
+  if batch.len > 0:
+    q.add " AND tw.batch = " & esc(batch)
+  if likedOnly:
+    q.add " AND tw.liked = 1"
   q.add " ORDER BY COALESCE(tw.created_at, tw.fetched_at) DESC, tw.fetched_at DESC LIMIT " & $limit
   for row in store.db.getAllRows(sql(q)):
     result.add tweetFromRowWithExtras(row)

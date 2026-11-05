@@ -34,6 +34,17 @@ proc createXTimeRouter*(store: XStore, conf: XTimeConf) =
       let batch = @"batch"
       respJson getFeedSnapshot(xtimeStore, xtimeConf, noise, batch, liked)
 
+    get "/api/nouns":
+      let noise = @"noise" == "1"
+      let liked = @"liked" == "1"
+      let batch = @"batch"
+      let noun = @"noun".strip().toLowerAscii()
+      if noun.len == 0:
+        respJson %*{"noun": "", "tweets": []}
+      else:
+        let tweets = xtimeStore.getTweetsByNoun(noun, 50, noise, batch, liked)
+        respJson %*{"noun": noun, "tweets": tweetsJson(tweets)}
+
     get "/api/status":
       var active: JsonNode = newJNull()
       let curJob = getActiveJob()

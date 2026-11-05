@@ -8,14 +8,18 @@ type
     baseUrl*: string
     apiKeyEnv*: string
     timeoutMs*: int
+    reasoningEffort*: string  # sent as reasoning_effort when set, e.g. "low"
 
   ClassifyOpts* = object
     model*: string
     baseUrl*: string
     apiKeyEnv*: string
     timeoutMs*: int
+    reasoningEffort*: string
     topics*: seq[string]
     maxTopics*: int
+    chunkSize*: int         # tweets per call; 0 sends the whole batch in one
+    chunkConcurrency*: int
 
   TranslateOpts* = object
     enabled*: bool
@@ -23,8 +27,10 @@ type
     baseUrl*: string
     apiKeyEnv*: string
     timeoutMs*: int
+    reasoningEffort*: string
 
   XTimeConf* = object
+    autoScrape*: bool
     topics*: seq[string]
     maxTopics*: int
     pages*: int
@@ -58,7 +64,8 @@ proc parseProvider(providers: JsonNode, name: string): LlmProvider =
     model: providers{name}{"model"}.getStr(),
     baseUrl: providers{name}{"baseUrl"}.getStr(),
     apiKeyEnv: providers{name}{"apiKeyEnv"}.getStr(),
-    timeoutMs: providers{name}{"timeoutMs"}.getInt(60000)
+    timeoutMs: providers{name}{"timeoutMs"}.getInt(60000),
+    reasoningEffort: providers{name}{"reasoningEffort"}.getStr()
   )
 
 proc optInt(node: JsonNode, key: string, default: int): int =
@@ -96,14 +103,19 @@ proc loadXTimeConf*(path = "xtime.config.json"): XTimeConf =
       baseUrl: cp.baseUrl,
       apiKeyEnv: cp.apiKeyEnv,
       timeoutMs: cp.timeoutMs,
+      reasoningEffort: cp.reasoningEffort,
       topics: topics,
-      maxTopics: raw{"maxTopics"}.getInt(20)
+      maxTopics: raw{"maxTopics"}.getInt(20),
+      chunkSize: (if c{"mode"}.getStr() == "chunked": optInt(c, "chunkSize", 20) else: 0),
+      chunkConcurrency: optInt(c, "chunkConcurrency", 3)
     ),
     translate: TranslateOpts(
       enabled: if t{"enabled"}.isNil: true else: t{"enabled"}.getBool(),
       model: tp.model,
       baseUrl: tp.baseUrl,
       apiKeyEnv: tp.apiKeyEnv,
-      timeoutMs: tp.timeoutMs
+      timeoutMs: tp.timeoutMs,
+      reasoningEffort: tp.reasoningEffort
     )
   )
+  result.autoScrape = if raw{"autoScrape"}.isNil: true else: raw{"autoScrape"}.getBool()

@@ -10,6 +10,10 @@
   <header class="topbar">
     <h1>For You feed</h1>
     <div class="controls">
+      <div class="view-toggle" id="viewToggle" role="tablist">
+        <button type="button" class="view-tab active" data-view="topics" role="tab" aria-selected="true">Topics</button>
+        <button type="button" class="view-tab" data-view="nouns" role="tab" aria-selected="false">Nouns</button>
+      </div>
       <select id="batch" title="Scrape batch" aria-label="Scrape batch"></select>
       <label class="noise-toggle">
         <input type="checkbox" id="noise" />
@@ -25,9 +29,21 @@
   <main>
     <section class="stats" id="stats"></section>
     <section class="topic-list" id="topicList"></section>
+    <section class="noun-list" id="nounList" hidden></section>
   </main>
 
   <div class="toast" id="toast" hidden></div>
+
+  <dialog id="scrapeModal" class="scrape-modal">
+    <form method="dialog">
+      <h2>No batch today</h2>
+      <p>No tweets have been scraped yet today. Run a scrape now?</p>
+      <div class="modal-actions">
+        <button type="submit" value="cancel" class="btn">Not now</button>
+        <button type="submit" value="scrape" class="btn btn-primary">Scrape now</button>
+      </div>
+    </form>
+  </dialog>
   <script src="app.js"></script>
 </body>
 </html>
