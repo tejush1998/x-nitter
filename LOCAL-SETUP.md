@@ -56,7 +56,7 @@ Redis-compatible cache and happily talks to Valkey on `localhost:6379`.
 your logged-in account (without them, X blocks most content).
 
 "Regenerating" it just means: each time you run `start.sh`, a tiny script
-(`make_sessions.mjs`) reads `AUTH_TOKEN` and `CT0` from x-time's `.env` file
+(`make_sessions.mjs`) reads `AUTH_TOKEN` and `CT0` from this folder's `.env` file
 and rewrites `sessions.jsonl` with your latest cookies. So every restart picks
 up your current cookies automatically — you never have to touch this file by
 hand. (The cookie values are never printed to the terminal.)
@@ -84,7 +84,7 @@ All commands must be run from this folder
 - **Start:** `bash start.sh`
   - Ensures Valkey is running (`brew services start valkey`)
   - Kills any old nitter instance (`pkill -x nitter`)
-  - Regenerates `sessions.jsonl` from x-time's `.env`
+  - Regenerates `sessions.jsonl` from `.env`
   - Launches nitter in the background; logs → `/tmp/nitter.log`
 
 - **Stop:** `pkill -x nitter` (or let start.sh do it on the next run)
@@ -106,24 +106,19 @@ All commands must be run from this folder
 ## The Follow button on profile pages
 
 This fork adds a small round **+** button on every user page, right next to
-the username (same look as the like buttons in x-time). Nitter itself is
-read-only — it can't follow anyone — so the button delegates to the
-**x-time** server, which owns your X login cookies:
+the username (same look as the like buttons on the `/xtime/` dashboard).
+Upstream nitter is read-only, so the button calls this server's own
+`/api/follow` and `/api/following` endpoints (the xtime router), which act
+through your X login cookies via `scraper.py`:
 
 1. When a profile page loads, the button shows dimmed `…` while
-   `public/js/follow.js` quietly asks x-time (`http://localhost:4310`)
-   whether you already follow that user.
+   `public/js/follow.js` quietly asks `/api/following` whether you already
+   follow that user.
 2. The `+` shows in the accent color if you already follow them (hover says
    "Following — click to unfollow"), otherwise it stays grey ("Follow").
-3. Clicking it asks x-time to follow (or unfollow) via your X session, then
-   flips the state. While waiting it shows `…`; on failure a red `×` with a
-   "click to retry" tooltip.
-
-This only works while the x-time server is running (`npm run start` in the
-x-time folder; it listens on port 4310). If x-time is down the button still
-renders, but the initial check fails silently and clicks show the retry
-state. x-time allow-lists `http://localhost:8080` (CORS), so the button only
-talks to it from this local nitter.
+3. Clicking it calls `/api/follow` to follow (or unfollow) via your X session,
+   then flips the state. While waiting it shows `…`; on failure a red `×` with
+   a "click to retry" tooltip.
 
 Files involved, if you want to tweak it:
 
