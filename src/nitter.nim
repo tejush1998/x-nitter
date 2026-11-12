@@ -6,7 +6,7 @@ from os import getEnv, normalizedPath
 
 import jester
 
-import types, config, prefs, formatters, redis_cache, http_pool, auth, apiutils
+import types, config, prefs, formatters, caching, http_pool, auth, apiutils
 import views/[general, about]
 import routes/[
   preferences, timeline, status, media, search, rss, list, community, debug,
@@ -54,8 +54,7 @@ setMaxRetries(cfg.maxRetries)
 setRetryDelayMs(cfg.retryDelayMs)
 initAboutPage(cfg.staticDir)
 
-waitFor initRedisPool(cfg)
-stdout.write &"Connected to Redis at {cfg.redisHost}:{cfg.redisPort}\n"
+initCache(cfg)
 stdout.flushFile
 
 createArticleRouter(cfg)

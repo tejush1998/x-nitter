@@ -3,7 +3,7 @@ import asyncdispatch, strutils
 import jester
 
 import router_utils
-import ".."/[types, formatters, redis_cache]
+import ".."/[types, formatters, caching]
 import ../views/[general, broadcast]
 import media
 

@@ -446,6 +446,7 @@ type
 
     rssCacheTime*: int
     listCacheTime*: int
+    cachePath*: string
 
     redisHost*: string
     redisPort*: int

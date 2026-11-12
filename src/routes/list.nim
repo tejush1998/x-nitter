@@ -4,7 +4,7 @@ import strutils, strformat, uri
 import jester
 
 import router_utils
-import ".."/[types, redis_cache, api]
+import ".."/[types, caching, api]
 import ../views/[general, timeline, list]
 
 template respList*(list, timeline, title, vnode: typed) =

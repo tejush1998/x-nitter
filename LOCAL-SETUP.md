@@ -31,23 +31,26 @@ When you start nitter, it:
    (listens on `http://localhost:8080`).
 2. Loads your X account "session" from `sessions.jsonl` so it can fetch
    tweets *as you* (see below).
-3. Uses a small cache server (Valkey) so it doesn't hammer X for the same
-   tweet twice.
+3. Keeps a small SQLite cache (`cache.db`) so it doesn't look up the same
+   user over and over while you open and scroll a profile.
 4. Starts a background web server that answers requests on port 8080.
 
 It keeps running in the background even after you close the terminal — that's
 what `nohup` is for (explained below).
 
-## What is Valkey? Am I running Redis?
+## The cache (SQLite, or Valkey if you want it)
 
-**Valkey** is the modern open-source successor to **Redis**. Redis was
-renamed/forked into Valkey when Redis Ltd. changed its licensing. Valkey is a
-drop-in replacement: same commands, same protocol, same default port (6379).
+Upstream Nitter needs a Redis-compatible server. This fork stores the same cache
+in a SQLite file instead (`cache.db`, set by `sqlitePath` under `[Cache]` in
+`nitter.conf`), so there's no extra server to run. Same keys, same expiry times.
 
-You are **not** running "Redis" — you're running **Valkey** (`valkey-server`,
-installed via Homebrew and started as a brew service). Nitter requires a
-Redis-compatible cache and happily talks to Valkey on `localhost:6379`.
-`redis-cli ping` still works because Valkey speaks the same protocol.
+What it saves: opening a profile looks the user up once instead of twice, and
+each infinite-scroll page reuses that lookup instead of fetching it again. A
+profile opened once and scrolled two pages costs 5 calls to X instead of 10.
+Tweet pages and search don't use the cache.
+
+To go back to Redis/Valkey (`valkey-server` from Homebrew on `localhost:6379`),
+build with `-d:redisCache`.
 
 ## What does "regenerate sessions.jsonl" mean?
 
@@ -82,7 +85,6 @@ All commands must be run from this folder
 `nitter.conf` and `sessions.jsonl` from its current working directory.
 
 - **Start:** `bash start.sh`
-  - Ensures Valkey is running (`brew services start valkey`)
   - Kills any old nitter instance (`pkill -x nitter`)
   - Regenerates `sessions.jsonl` from `.env`
   - Launches nitter in the background; logs → `/tmp/nitter.log`
@@ -100,7 +102,7 @@ All commands must be run from this folder
 - `curl http://localhost:8080/` → returns the nitter homepage
 - `curl http://localhost:8080/<username>` → a real user page (fetched via
   your cookies)
-- `tail /tmp/nitter.log` → should show "Connected to Redis/Valkey" and
+- `tail /tmp/nitter.log` → should show "Cache: SQLite at cache.db" and
   "successfully added 1 valid account sessions"
 
 ## The Follow button on profile pages

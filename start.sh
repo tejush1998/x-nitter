@@ -1,7 +1,7 @@
 #!/bin/bash
-# Start nitter locally: ensure valkey is up, (re)generate sessions from .env cookies, then launch.
+# Start nitter locally: (re)generate sessions from .env cookies, then launch.
+# The cache is SQLite (cache.db); only builds made with -d:redisCache need valkey running.
 cd "$(dirname "$0")"
-brew services start valkey >/dev/null 2>&1
 pkill -x nitter >/dev/null 2>&1
 sleep 1
 node --env-file=.env make_sessions.mjs
