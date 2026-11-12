@@ -1,12 +1,12 @@
 # x-time jester router: UI + API (replaces server.js; CORS hack removed)
 import std/[json, strutils, asyncdispatch, options, os]
 import jester
-import xconfig, xstore, xscraper, xstatus, xengine, xjobs, xrecommend
+import xconfig, xstore, xscraper, xstatus, xengine, xjobs, xrecommend, xpeople
 import ../routes/router_utils
 
 # Re-export what nitter.nim needs, but NOT xstore.Tweet / Assignment
 # (clashes with types.Tweet inside jester's routes macro expansion).
-export xconfig, xjobs, xengine, xscraper, xstatus, xrecommend
+export xconfig, xjobs, xengine, xscraper, xstatus, xrecommend, xpeople
 export xstore except Tweet, Assignment
 
 var
@@ -166,6 +166,41 @@ proc createXTimeRouter*(store: XStore, conf: XTimeConf) =
         resp Http502, @[("Content-Type", "application/json")], $ %*{"error": e.msg}
       except CatchableError as e:
         resp Http502, @[("Content-Type", "application/json")], $ %*{"error": e.msg}
+
+    get "/api/people":
+      # The dashboard's people search bar.
+      let q = @"q".strip()
+      if q.len == 0 or q.len > 100:
+        resp Http400, @[("Content-Type", "application/json")], $ %*{"error": "q is required"}
+      else:
+        try:
+          respJson %*{"ok": true, "people": await searchPeople(q)}
+        except CatchableError as e:
+          resp Http502, @[("Content-Type", "application/json")], $ %*{"error": e.msg}
+
+    get "/api/people/recent":
+      respJson %*{"ok": true, "people": recentPeople(xtimeStore)}
+
+    post "/api/people/recent":
+      # Someone opened from the dashboard's people search.
+      try:
+        let body = parseJson(request.body)
+        if not validUsername(body{"username"}.getStr().strip(chars = {'@', ' '})):
+          resp Http400, @[("Content-Type", "application/json")], $ %*{"error": "username is required"}
+        else:
+          respJson %*{"ok": true, "people": rememberPerson(xtimeStore, body)}
+      except CatchableError as e:
+        resp Http400, @[("Content-Type", "application/json")], $ %*{"error": e.msg}
+
+    post "/api/people/forget":
+      try:
+        let username = parseJson(request.body){"username"}.getStr().strip(chars = {'@', ' '})
+        if not validUsername(username):
+          resp Http400, @[("Content-Type", "application/json")], $ %*{"error": "username is required"}
+        else:
+          respJson %*{"ok": true, "people": forgetPerson(xtimeStore, username)}
+      except CatchableError as e:
+        resp Http400, @[("Content-Type", "application/json")], $ %*{"error": e.msg}
 
     get "/api/recommend":
       # Polled by /js/recommend.js on tweet pages; starts a run if there is none.

@@ -27,6 +27,10 @@ non-addictive, without endless scrolling.
 - **Feed dashboard** — a web UI served at `http://localhost:8080/xtime/` from
   the same server as Nitter. It shows your scraped For You feed grouped by
   topic, with a search/filter view.
+- **People search** — the search box in the dashboard's top bar looks people
+  up through X's People search and opens their profile here. People you open
+  are remembered in the local database (`/api/people/recent`) and listed when
+  the box is empty (× forgets one).
 - **Logged-in timeline scraping** — the feed is fetched in batches with your
   own X session through a small Python helper bundled with the project, which
   uses a browser-impersonating client so X treats it like a normal browser.
