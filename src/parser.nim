@@ -65,6 +65,9 @@ proc parseGraphUser(js: JsonNode): User =
     result.username = user{"core", "screen_name"}.getStr
     result.fullname = user{"core", "name"}.getStr
     result.userPic = user{"avatar", "image_url"}.getImageStr.replace("_normal", "")
+    result.bio = user{"profile_bio", "description"}.getStr
+    result.followers = user{"relationship_counts", "followers"}.getInt
+    result.protected = user{"privacy", "protected"}.getBool
 
     if user{"is_blue_verified"}.getBool(
        user{"verification", "is_blue_verified"}.getBool(false)):

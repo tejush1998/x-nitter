@@ -531,6 +531,229 @@ $("#noise").addEventListener("change", (e) => {
   render().catch((err) => toast(err.message, "error"));
 });
 
+// People search: X's People results in a dropdown. People you open are
+// remembered server-side (meta "people.recent") and listed when the box is
+// empty.
+const OLD_PEOPLE_KEY = "people:recent"; // where the list lived before it moved to the server
+const people = {
+  query: "",
+  results: [],
+  recent: [],
+  cache: new Map(), // query -> Promise of results
+  loading: false,
+  error: null,
+  active: 0,
+  picked: false, // moved with the arrow keys since the last keystroke
+  timer: null,
+  seq: 0,
+};
+
+const recentPeople = () => people.recent;
+
+async function postPeople(path, body) {
+  const res = await api(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  people.recent = res.people;
+}
+
+function rememberPerson(p) {
+  const same = (r) => r.username.toLowerCase() === p.username.toLowerCase();
+  const { username, fullname, pic, verified } = p;
+  people.recent = [{ username, fullname, pic, verified }, ...people.recent.filter((r) => !same(r))];
+  postPeople("/api/people/recent", { username, fullname, pic, verified }).catch((err) =>
+    console.warn("[app:people] remember failed:", err.message));
+}
+
+function forgetPerson(username) {
+  people.recent = people.recent.filter((r) => r.username !== username);
+  postPeople("/api/people/forget", { username }).catch((err) => toast(`Couldn't forget @${username}: ${err.message}`, "error"));
+}
+
+async function loadRecentPeople() {
+  try {
+    let old = [];
+    try {
+      old = JSON.parse(localStorage.getItem(OLD_PEOPLE_KEY)) || [];
+    } catch {}
+    // Oldest first, so the newest ends up on top.
+    for (const p of old.reverse()) await postPeople("/api/people/recent", p);
+    localStorage.removeItem(OLD_PEOPLE_KEY);
+    if (!old.length) people.recent = (await api("/api/people/recent")).people;
+  } catch (err) {
+    console.warn("[app:people] load failed:", err.message);
+  }
+}
+
+const fmtCount = (n) => new Intl.NumberFormat(undefined, { notation: "compact" }).format(n);
+
+function personEl(p, recent) {
+  const row = el("div", "person");
+  row.setAttribute("role", "option");
+  if (recent) row.dataset.recent = "1";
+
+  const link = el("a", "person-link");
+  link.href = `${state.linkBase}/${p.username}`;
+  link.target = "_blank";
+  link.addEventListener("click", () => {
+    rememberPerson(p);
+    closePeople();
+  });
+
+  const pic = el("img", "person-pic");
+  pic.alt = "";
+  pic.loading = "lazy";
+  if (p.pic) pic.src = p.pic;
+  link.appendChild(pic);
+
+  const names = el("div", "person-names");
+  const name = el("b", null, p.fullname || p.username);
+  if (p.verified) name.appendChild(el("span", "person-tick", "✓"));
+  names.appendChild(name);
+  let handle = `@${p.username}`;
+  if (p.protected) handle += " · 🔒";
+  if (p.followers != null) handle += ` · ${fmtCount(p.followers)} followers`;
+  names.appendChild(el("span", "person-handle", handle));
+  if (p.bio) names.appendChild(el("div", "person-bio", p.bio));
+  link.appendChild(names);
+  row.appendChild(link);
+
+  if (recent) {
+    const forget = el("button", "person-forget", "×");
+    forget.type = "button";
+    forget.title = `Forget @${p.username}`;
+    forget.setAttribute("aria-label", forget.title);
+    forget.addEventListener("click", (e) => {
+      e.stopPropagation(); // the row is gone after the re-render, so the outside-click check would close the menu
+      forgetPerson(p.username);
+      renderPeople();
+      $("#peopleInput").focus();
+    });
+    row.appendChild(forget);
+  }
+  return row;
+}
+
+function renderPeople() {
+  const menu = $("#peopleMenu");
+  const q = people.query.toLowerCase();
+  const matches = (p) => p.username.toLowerCase().includes(q) || (p.fullname || "").toLowerCase().includes(q);
+  const recent = recentPeople().filter((p) => !q || matches(p));
+  const shown = new Set(recent.map((p) => p.username.toLowerCase()));
+  const found = q ? people.results.filter((p) => !shown.has(p.username.toLowerCase())) : [];
+
+  menu.innerHTML = "";
+  if (recent.length) {
+    menu.appendChild(el("div", "people-title", "Recent"));
+    for (const p of recent) menu.appendChild(personEl(p, true));
+  }
+  if (q) {
+    if (found.length) {
+      menu.appendChild(el("div", "people-title", "People"));
+      for (const p of found) menu.appendChild(personEl(p, false));
+    } else if (people.loading) {
+      menu.appendChild(el("div", "people-note", "Searching…"));
+    } else if (people.error) {
+      menu.appendChild(el("div", "people-note error", `Search failed: ${people.error}`));
+    } else if (!recent.length) {
+      menu.appendChild(el("div", "people-note", "No people found"));
+    }
+    const all = el("a", "people-all", `All results for “${people.query}” →`);
+    all.href = `${state.linkBase}/search?f=users&q=${encodeURIComponent(people.query)}`;
+    all.target = "_blank";
+    menu.appendChild(all);
+  }
+
+  const rows = menu.querySelectorAll(".person");
+  people.active = Math.min(people.active, Math.max(rows.length - 1, 0));
+  rows.forEach((r, i) => r.classList.toggle("active", i === people.active));
+  menu.hidden = !menu.children.length;
+  $("#peopleInput").setAttribute("aria-expanded", String(!menu.hidden));
+}
+
+function closePeople() {
+  $("#peopleMenu").hidden = true;
+  $("#peopleInput").setAttribute("aria-expanded", "false");
+}
+
+async function searchPeople(q) {
+  clearTimeout(people.timer);
+  const seq = ++people.seq;
+  if (!people.cache.has(q)) {
+    people.cache.set(q, api(`/api/people?q=${encodeURIComponent(q)}`).then((res) => res.people));
+  }
+  try {
+    const results = await people.cache.get(q);
+    if (seq !== people.seq) return;
+    Object.assign(people, { results, loading: false, error: null });
+  } catch (err) {
+    people.cache.delete(q);
+    if (seq !== people.seq) return;
+    Object.assign(people, { results: [], loading: false, error: err.message });
+  }
+  renderPeople();
+}
+
+$("#peopleInput").addEventListener("input", (e) => {
+  people.query = e.target.value.trim();
+  people.active = 0;
+  people.picked = false;
+  clearTimeout(people.timer);
+  if (people.query) {
+    // keep the previous results on screen until the new ones arrive
+    people.loading = true;
+    people.error = null;
+    if (people.cache.has(people.query)) searchPeople(people.query);
+    else people.timer = setTimeout(() => searchPeople(people.query), 300);
+  } else {
+    people.seq++;
+    Object.assign(people, { results: [], loading: false, error: null });
+  }
+  renderPeople();
+});
+$("#peopleInput").addEventListener("focus", () => {
+  renderPeople();
+  // Another tab may have added someone since the page loaded.
+  api("/api/people/recent")
+    .then((res) => {
+      people.recent = res.people;
+      if (document.activeElement === $("#peopleInput")) renderPeople();
+    })
+    .catch(() => {});
+});
+$("#peopleInput").addEventListener("keydown", (e) => {
+  const rows = $("#peopleMenu").querySelectorAll(".person");
+  if (e.key === "Escape") {
+    closePeople();
+    e.target.blur();
+  } else if ((e.key === "ArrowDown" || e.key === "ArrowUp") && rows.length) {
+    e.preventDefault();
+    if ($("#peopleMenu").hidden) return renderPeople();
+    const step = e.key === "ArrowDown" ? 1 : -1;
+    people.active = (people.active + step + rows.length) % rows.length;
+    people.picked = true;
+    rows.forEach((r, i) => r.classList.toggle("active", i === people.active));
+    rows[people.active].scrollIntoView({ block: "nearest" });
+  }
+});
+$("#peopleSearch").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const row = !$("#peopleMenu").hidden && $("#peopleMenu").querySelectorAll(".person")[people.active];
+  // While a search is in flight the result rows belong to an older query, so
+  // Enter searches now instead of opening one (unless it was chosen with the arrows).
+  if (row && (!people.loading || row.dataset.recent || people.picked)) row.querySelector(".person-link").click();
+  else if (people.loading) searchPeople(people.query);
+  else if (people.query) $(".people-all")?.click();
+});
+document.addEventListener("click", (e) => {
+  if (!$("#peopleSearch").contains(e.target)) closePeople();
+});
+$("#peopleSearch").addEventListener("focusout", (e) => {
+  if (e.relatedTarget && !$("#peopleSearch").contains(e.relatedTarget)) closePeople();
+});
+
 // Labs: experimental toggles, stored server-side so tweet pages honour them
 async function loadExperiments() {
   try {
@@ -563,6 +786,7 @@ document.addEventListener("click", (e) => {
   if (!$("#labs").contains(e.target)) $("#labs").open = false;
 });
 loadExperiments();
+loadRecentPeople();
 
 render().catch((err) => {
   $("#topicList").innerHTML = "";

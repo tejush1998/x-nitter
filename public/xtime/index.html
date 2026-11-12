@@ -9,6 +9,11 @@
 <body>
   <header class="topbar">
     <h1>For You feed</h1>
+    <form class="people-search" id="peopleSearch" role="search" autocomplete="off">
+      <input type="search" id="peopleInput" placeholder="Search people" aria-label="Search people"
+             aria-controls="peopleMenu" aria-expanded="false" />
+      <div class="people-menu" id="peopleMenu" role="listbox" hidden></div>
+    </form>
     <div class="controls">
       <div class="view-toggle" id="viewToggle" role="tablist">
         <button type="button" class="view-tab active" data-view="topics" role="tab" aria-selected="true">Topics</button>

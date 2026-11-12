@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-import sequtils
+import sequtils, strutils
 import karax/[karaxdsl, vdom]
 
 import ".."/[types, formatters]
@@ -67,8 +67,19 @@ proc renderRelated(replies: Result[Chain]; prefs: Prefs; path: string): VNode =
       if thread.content.len == 0 or not thread.related: continue
       renderReplyThread(thread, prefs, path)
 
+proc renderReplySection(conv: Conversation; prefs: Prefs; path: string;
+                        sort: RankingMode): seq[VNode] =
+  if not conv.replies.beginning:
+    result.add renderNewer(Query(), getLink(conv.tweet), focus="#r")
+  if conv.replies.content.len > 0 or conv.replies.bottom.len > 0:
+    result.add renderReplySort(sort)
+    result.add renderReplies(conv.replies, prefs, path, conv.tweet, sort)
+
 proc renderConversation*(conv: Conversation; prefs: Prefs; path: string;
-                         sort = Relevance): VNode =
+                         sort = Relevance; collapseReplies = false;
+                         openReplies = false): VNode =
+  ## collapseReplies folds the replies under a "Show replies" toggle (x-time
+  ## Labs); openReplies starts it open.
   let hasAfter = conv.after.content.len > 0
   let threadId = conv.tweet.threadId
   buildHtml(tdiv(class="conversation")):
@@ -98,11 +109,18 @@ proc renderConversation*(conv: Conversation; prefs: Prefs; path: string;
             renderMoreReplies(conv.after)
 
     if not prefs.hideReplies:
-      if not conv.replies.beginning:
-        renderNewer(Query(), getLink(conv.tweet), focus="#r")
-      if conv.replies.content.len > 0 or conv.replies.bottom.len > 0:
-        renderReplySort(sort)
-        renderReplies(conv.replies, prefs, path, conv.tweet, sort)
+      let replies = renderReplySection(conv, prefs, path, sort)
+      if collapseReplies and replies.len > 0:
+        let count = conv.tweet.stats.replies
+        details(class="replies-fold", open=openReplies):
+          summary(class="replies-toggle"):
+            span(class="replies-show"):
+              text(if count > 0: "Show replies (" & insertSep($count, ',') & ")"
+                   else: "Show replies")
+            span(class="replies-hide"): text "Hide replies"
+          for node in replies: node
+      else:
+        for node in replies: node
 
     if not prefs.hideRelated:
       if conv.replies.content.anyIt(it.related and it.content.len > 0):

@@ -164,6 +164,22 @@ proc isLimited(session: Session; req: ApiReq): bool =
 proc isReady(session: Session; req: ApiReq): bool =
   not (session.isNil or session.pending > maxConcurrentReqs or session.isLimited(req))
 
+proc readyIn*(req: ApiReq): int =
+  ## Seconds until a session can take this request: 0 if one can now, -1 if
+  ## the pool is empty. Ignores pending requests, which clear in seconds.
+  if sessionPool.len == 0: return -1
+  let now = epochTime().int
+  result = int.high
+  for session in sessionPool:
+    if not session.isLimited(req): return 0
+    let api = req.endpoint(session)
+    var wait = 1
+    if session.limited and api != graphUserTweetsV2:
+      wait = max(wait, session.limitedAt + hourInSeconds - now)
+    if api in session.apis:
+      wait = max(wait, session.apis[api].reset - now)
+    result = min(result, wait)
+
 proc invalidate*(session: var Session) =
   if session.isNil: return
   log "invalidating: ", session.pretty

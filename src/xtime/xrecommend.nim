@@ -7,6 +7,8 @@ from std/unicode import runeLen, runeSubStr
 import karax/vdom
 import ".."/[types, api, query, formatters]
 import ../views/tweet
+from ../auth import readyIn
+from ../consts import graphSearchTimeline
 from ./xllm import callLlmChat
 from ./xconfig import RecommendOpts, LlmProvider
 from ./xstore import epochMs
@@ -99,6 +101,17 @@ proc cleanKeywords(q: string): string =
 proc cleanError(msg: string): string =
   ## One line, without the async traceback Nim appends to re-raised errors.
   msg.split("\nAsync traceback:")[0].splitWhitespace().join(" ").clip(300)
+
+let searchReq = ApiReq(cookie: ApiUrl(endpoint: graphSearchTimeline),
+                       oauth: ApiUrl(endpoint: graphSearchTimeline))
+
+proc searchLimitMsg(): string =
+  ## Why no session can search X right now, or "" if one can.
+  let wait = readyIn(searchReq)
+  if wait == 0: ""
+  elif wait < 0: "No X sessions loaded; check sessions.jsonl and restart"
+  else: "X search limit reached (each recommendation uses 3 searches); " &
+        "try again in about " & $((wait + 59) div 60) & " min"
 
 proc idStr(n: JsonNode): string =
   if n.isNil: ""
@@ -198,6 +211,10 @@ proc rankCandidates(focal: Tweet; replies: seq[Tweet]; pool: seq[RecPick];
 
 proc runRecommend(run: RecRun; conv: Conversation) {.async.} =
   try:
+    # don't spend an LLM call writing searches that can't run
+    let limitMsg = searchLimitMsg()
+    if limitMsg.len > 0:
+      raise newException(ValueError, limitMsg)
     var conv = conv
     if conv.isNil:
       conv = await getTweet(run.tweetId)

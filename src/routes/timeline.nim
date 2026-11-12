@@ -3,13 +3,13 @@ import asyncdispatch, strutils, sequtils, uri, options, times
 import jester, karax/vdom
 
 import router_utils
-import ".."/[types, redis_cache, formatters, query, api]
+import ".."/[types, caching, formatters, query, api]
 import ../views/[general, profile, timeline, status, search, about_account]
 
 export vdom
 export uri, sequtils
 export router_utils
-export redis_cache, formatters, query, api
+export caching, formatters, query, api
 export profile, timeline, status, about_account
 
 proc tabRssEnabled*(cfg: Config; tab: string): bool =

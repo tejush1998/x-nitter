@@ -27,6 +27,10 @@ non-addictive, without endless scrolling.
 - **Feed dashboard** — a web UI served at `http://localhost:8080/xtime/` from
   the same server as Nitter. It shows your scraped For You feed grouped by
   topic, with a search/filter view.
+- **People search** — the search box in the dashboard's top bar looks people
+  up through X's People search and opens their profile here. People you open
+  are remembered in the local database (`/api/people/recent`) and listed when
+  the box is empty (× forgets one).
 - **Logged-in timeline scraping** — the feed is fetched in batches with your
   own X session through a small Python helper bundled with the project, which
   uses a browser-impersonating client so X treats it like a normal browser.
@@ -43,6 +47,7 @@ non-addictive, without endless scrolling.
   worth reading next. The LLM reads the tweet and a sample of its replies,
   writes three X searches (the core topic, an angle the replies raise, and
   fresh takes), then picks the best results with a one-line reason each.
+  The tweet's replies fold under a **Show replies** toggle.
   Results are kept in memory per tweet until the server restarts; the
   sidebar's Refresh button runs it again. The LLM provider and fallbacks are
   set under `recommend` in `xtime.config.json`.
@@ -107,8 +112,8 @@ python3 -m venv .venv
 
 ## Running
 
-Once your cookies are in `.env`, Redis/Valkey is running and the Python setup
-below is done, one command builds and starts the server:
+Once your cookies are in `.env` and the Python setup below is done, one command
+builds and starts the server:
 
 ```bash
 nim c -d:ssl --threads:off -o:./xnitter src/nitter.nim && ./xnitter
@@ -119,8 +124,9 @@ Nitter listens on the address/port set in `nitter.conf` (default
 
 ## Installation
 
-- [Nim](https://nim-lang.org/install.html) to compile, Redis or Valkey for
-  caching, Python 3 (with `venv`) and Node.js for the feed helper
+- [Nim](https://nim-lang.org/install.html) to compile, Python 3 (with `venv`) and
+  Node.js for the feed helper. The cache is a SQLite file (`cache.db`); build with
+  `-d:redisCache` to use Redis/Valkey instead, as upstream Nitter does
 - On Debian/Ubuntu also install `libpcre` and `libsass-dev`
 - `cp nitter.example.conf nitter.conf` and adjust address/port
 

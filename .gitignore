@@ -25,6 +25,7 @@ xtime-env
 .env
 .DS_Store
 feed.db*
+cache.db*
 
 # built launcher binary
 xnitter
