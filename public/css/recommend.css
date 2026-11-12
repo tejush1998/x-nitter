@@ -251,3 +251,23 @@ body.fixed-nav .recommend-panel {
 .recommend-pick .quote-media-container {
   display: none;
 }
+
+/* Replies fold under a toggle while recommendations are on. */
+.replies-toggle {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background-color: var(--bg_panel);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.replies-toggle:hover {
+  background-color: var(--bg_hover);
+}
+
+.replies-fold[open] .replies-show,
+.replies-fold:not([open]) .replies-hide {
+  display: none;
+}

@@ -75,14 +75,14 @@ proc createStatusRouter*(cfg: Config) =
       # x-time (experimental, toggled from the dashboard's Labs menu): start
       # (or reuse) this tweet's recommendations run with the conversation
       # already fetched; the sidebar polls it via /api/recommend. The replies
-      # still feed the run but aren't shown on the page.
+      # fold under a toggle, opened when sorting or paging through them.
       var html: VNode
       if recommendEnabled():
         discard ensureRecommend(id, conv, retryFailed = true)
-        var convPrefs = prefs
-        convPrefs.hideReplies = true
+        let openReplies = @"sort".len > 0 or getCursor().len > 0
         html = renderRecommendLayout(
-          renderConversation(conv, convPrefs, getPath() & "#m", sort), id)
+          renderConversation(conv, prefs, getPath() & "#m", sort,
+                             collapseReplies = true, openReplies = openReplies), id)
       else:
         html = renderConversation(conv, prefs, getPath() & "#m", sort)
       resp renderMain(html, request, cfg, prefs, title, desc, ogTitle,

@@ -47,6 +47,7 @@ non-addictive, without endless scrolling.
   worth reading next. The LLM reads the tweet and a sample of its replies,
   writes three X searches (the core topic, an angle the replies raise, and
   fresh takes), then picks the best results with a one-line reason each.
+  The tweet's replies fold under a **Show replies** toggle.
   Results are kept in memory per tweet until the server restarts; the
   sidebar's Refresh button runs it again. The LLM provider and fallbacks are
   set under `recommend` in `xtime.config.json`.

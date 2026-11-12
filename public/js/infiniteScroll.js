@@ -172,6 +172,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function handleScroll(failed) {
     if (loading || html.scrollTop + html.clientHeight < html.scrollHeight - 3000) return;
+    if (container?.closest("details:not([open])")) return; // replies folded away
 
     const loadMore = getLoadMore(document);
     if (!loadMore) return;

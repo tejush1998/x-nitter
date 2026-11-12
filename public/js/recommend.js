@@ -15,6 +15,8 @@
   };
 
   const init = () => {
+    // links that jump to the replies (#r) need the fold open to land
+    if (location.hash === "#r") document.querySelector(".replies-fold")?.setAttribute("open", "");
     const panel = document.getElementById("recommend");
     if (!panel) return;
     const id = panel.dataset.tweetid;
