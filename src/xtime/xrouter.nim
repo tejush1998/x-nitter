@@ -1,12 +1,12 @@
 # x-time jester router: UI + API (replaces server.js; CORS hack removed)
 import std/[json, strutils, asyncdispatch, options, os]
 import jester
-import xconfig, xstore, xscraper, xstatus, xengine, xjobs, xrecommend, xpeople
+import xconfig, xstore, xscraper, xstatus, xengine, xjobs, xrecommend, xpeople, xsummary
 import ../routes/router_utils
 
 # Re-export what nitter.nim needs, but NOT xstore.Tweet / Assignment
 # (clashes with types.Tweet inside jester's routes macro expansion).
-export xconfig, xjobs, xengine, xscraper, xstatus, xrecommend, xpeople
+export xconfig, xjobs, xengine, xscraper, xstatus, xrecommend, xpeople, xsummary
 export xstore except Tweet, Assignment
 
 var
@@ -22,6 +22,7 @@ proc createXTimeRouter*(store: XStore, conf: XTimeConf) =
   xtimeStore = store
   xtimeConf = conf
   initRecommend(conf.recommend, store.getMeta(recommendMetaKey) == "1")
+  initSummary(conf.summary, store)
   router xtime:
 
     get "/xtime":
@@ -203,7 +204,8 @@ proc createXTimeRouter*(store: XStore, conf: XTimeConf) =
         resp Http400, @[("Content-Type", "application/json")], $ %*{"error": e.msg}
 
     get "/api/recommend":
-      # Polled by /js/recommend.js on tweet pages; starts a run if there is none.
+      # Polled by /js/recommend.js on tweet pages. Without start=1 or
+      # refresh=1 it only reports an existing run ("idle" when there is none).
       let id = @"id"
       if id.len == 0 or id.len > 19 or not id.allCharsInSet(Digits):
         resp Http400, @[("Content-Type", "application/json")], $ %*{"error": "id is required"}
@@ -212,8 +214,23 @@ proc createXTimeRouter*(store: XStore, conf: XTimeConf) =
           "error": "Recommendations are turned off (dashboard → Labs)", "disabled": true
         }
       else:
-        let run = ensureRecommend(id, refresh = @"refresh" == "1")
-        respJson recommendJson(run, requestPrefs(), @"path")
+        let refresh = @"refresh" == "1"
+        let run = if refresh or @"start" == "1":
+                    ensureRecommend(id, refresh = refresh, retryFailed = true)
+                  else: findRecommend(id)
+        if run.isNil:
+          respJson %*{"status": "idle"}
+        else:
+          respJson recommendJson(run, requestPrefs(), @"path")
+
+    get "/api/summary":
+      # Polled by /js/summary.js from a profile's ✦ button; starts a run if
+      # there is no cached summary, or refresh=1 asks for a new one.
+      let username = (@"username").strip(chars = {'@', ' '})
+      if not validUsername(username):
+        resp Http400, @[("Content-Type", "application/json")], $ %*{"error": "username is required"}
+      else:
+        respJson summaryJson(username, refresh = @"refresh" == "1")
 
     get "/api/experiments":
       respJson experimentsJson()

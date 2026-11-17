@@ -237,8 +237,8 @@ proc runRecommend(run: RecRun; conv: Conversation) {.async.} =
 
     # since: is day-granular, so the pool below also drops anything older
     # than the exact cutoff
-    let oldest = if focal.time.isInitialized: focal.time - 1.months
-                 else: now().utc - 1.months
+    let oldest = if focal.time.isInitialized: focal.time - recOpts.days.days
+                 else: now().utc - recOpts.days.days
     run.searches = await planSearches(focal, replies, oldest.utc.format("yyyy-MM-dd"))
     run.stage = 2
     echo "[xtime] recommend ", run.tweetId, ": searching ",
@@ -305,6 +305,10 @@ proc evictOldRuns() =
       runOrder.delete i
     else:
       inc i
+
+proc findRecommend*(id: string): RecRun =
+  ## This tweet's current or cached run, nil when none was started.
+  runs.getOrDefault(id)
 
 proc ensureRecommend*(id: string; conv: Conversation = nil; refresh = false;
     retryFailed = false): RecRun =

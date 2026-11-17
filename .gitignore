@@ -27,5 +27,7 @@ xtime-env
 feed.db*
 cache.db*
 
-# built launcher binary
+# built binaries (xnitter.new is update.sh's build before the swap)
 xnitter
+xnitter.new
+xtimecli

@@ -37,6 +37,9 @@ proc renderUserCard*(user: User; prefs: Prefs; info: AccountInfo): VNode =
         linkUser(user, class="profile-card-username")
         button(class="profile-follow", data-username=user.username, title="Checking\u2026"):
           text "\u2026"
+        button(class="profile-summarize", data-username=user.username,
+               title="Summarize the last two weeks of posts"):
+          text "\u2726"
 
     tdiv(class="profile-card-extra"):
       if user.bio.len > 0:

@@ -1,0 +1,68 @@
+/* x-time: profile summary section (toggled by the ✦ button, filled by /js/summary.js).
+   Kept out of the Sass build; uses the theme variables so every theme works. */
+
+.profile-summary {
+  width: 100%;
+  margin: 6px 0 4px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--border_grey);
+  border-radius: 4px;
+  color: var(--fg_color);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.profile-summary[hidden] {
+  display: none;
+}
+
+.summary-overview {
+  margin: 0 0 6px;
+  font-style: italic;
+}
+
+.summary-topics {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.summary-topics li + li {
+  margin-top: 3px;
+}
+
+.summary-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--fg_faded);
+  font-size: 11px;
+}
+
+.summary-refresh {
+  margin-left: auto;
+}
+
+.summary-status {
+  color: var(--fg_faded);
+}
+
+.summary-error {
+  margin-bottom: 6px;
+  color: #e0245e;
+}
+
+.profile-summarize.summary-open {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.profile-summarize.summary-busy {
+  animation: summary-pulse 1s ease-in-out infinite;
+}
+
+@keyframes summary-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
