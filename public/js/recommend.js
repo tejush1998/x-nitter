@@ -31,7 +31,19 @@
     refresh.title = "Search again and re-pick";
     head.appendChild(refresh);
     const body = el("div", "recommend-body");
-    panel.append(head, body);
+    // nothing runs until this is clicked (a cached run shows without it)
+    const start = el("button", "recommend-start", "Recommended");
+    start.type = "button";
+    start.title = "Find tweets to read next (uses 3 X searches and an LLM call)";
+    head.hidden = true;
+    start.hidden = true;
+    panel.append(start, head, body);
+
+    const showIdle = () => {
+      head.hidden = true;
+      body.innerHTML = "";
+      start.hidden = false;
+    };
 
     const renderSteps = (data) => {
       const list = el("div", "recommend-steps");
@@ -100,6 +112,8 @@
     };
 
     const render = (data) => {
+      start.hidden = true;
+      head.hidden = false;
       lastStage = data.stage ?? lastStage;
       body.innerHTML = "";
       refresh.disabled = data.status === "running";
@@ -112,25 +126,29 @@
       if (data.searches?.length) body.appendChild(renderSearches(data));
     };
 
-    const poll = async (refreshRun) => {
+    // mode: "check" (report a cached run only), "start" or "refresh"
+    const poll = async (mode) => {
       const token = ++pollToken;
       try {
         const q = new URLSearchParams({ id, path: location.pathname });
-        if (refreshRun) q.set("refresh", "1");
+        if (mode === "start" || mode === "refresh") q.set(mode, "1");
         const res = await fetch(`/api/recommend?${q}`);
         const data = await res.json().catch(() => ({}));
         if (token !== pollToken) return;
         if (data.disabled) {
           // switched off from the dashboard's Labs menu after this page loaded
+          start.hidden = true;
+          head.hidden = false;
           refresh.hidden = true;
           body.innerHTML = "";
           body.appendChild(el("div", "recommend-empty", "Recommendations are turned off. Turn them on from the dashboard's Labs menu."));
           return;
         }
         if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        if (data.status === "idle") return showIdle();
         render(data);
         if (data.status === "running") {
-          setTimeout(() => { if (token === pollToken) poll(false); }, 1000);
+          setTimeout(() => { if (token === pollToken) poll("check"); }, 1000);
         }
       } catch (err) {
         if (token !== pollToken) return;
@@ -138,9 +156,12 @@
       }
     };
 
-    refresh.addEventListener("click", () => poll(true));
-    render({ status: "running", stage: 0, elapsedMs: 0, searches: [], picks: [] });
-    poll(false);
+    refresh.addEventListener("click", () => poll("refresh"));
+    start.addEventListener("click", () => {
+      render({ status: "running", stage: 0, elapsedMs: 0, searches: [], picks: [] });
+      poll("start");
+    });
+    poll("check");
   };
 
   if (document.readyState === "loading") {

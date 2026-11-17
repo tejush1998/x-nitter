@@ -63,6 +63,13 @@
     "provider": "astorias",
     "fallback": ["meta"],
     "replySample": 8,
-    "picks": 4
+    "picks": 4,
+    "days": 14
+  },
+  "summary": {
+    "provider": "astorias",
+    "days": 14,
+    "maxTweets": 100,
+    "maxPages": 10
   }
 }

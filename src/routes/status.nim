@@ -72,13 +72,12 @@ proc createStatusRouter*(cfg: Config) =
         tweetUrl = getUrlPrefix(cfg) & "/" & conv.tweet.user.username & "/status/" & $conv.tweet.id
         oembedUrl = getUrlPrefix(cfg) & "/api/oembed?url=" & encodeUrl(tweetUrl)
 
-      # x-time (experimental, toggled from the dashboard's Labs menu): start
-      # (or reuse) this tweet's recommendations run with the conversation
-      # already fetched; the sidebar polls it via /api/recommend. The replies
-      # fold under a toggle, opened when sorting or paging through them.
+      # x-time (experimental, toggled from the dashboard's Labs menu): the
+      # sidebar starts this tweet's recommendations run via /api/recommend
+      # only when its Recommended button is clicked. The replies fold under a
+      # toggle, opened when sorting or paging through them.
       var html: VNode
       if recommendEnabled():
-        discard ensureRecommend(id, conv, retryFailed = true)
         let openReplies = @"sort".len > 0 or getCursor().len > 0
         html = renderRecommendLayout(
           renderConversation(conv, prefs, getPath() & "#m", sort,

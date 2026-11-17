@@ -63,6 +63,26 @@ body.fixed-nav .recommend-panel {
   font-weight: bold;
 }
 
+.recommend-panel [hidden] {
+  display: none;
+}
+
+.recommend-start {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: var(--bg_panel);
+  color: var(--accent);
+  border: 1px solid var(--accent_border);
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.recommend-start:hover {
+  background-color: var(--bg_hover);
+}
+
 .recommend-refresh {
   background: transparent;
   color: var(--accent);

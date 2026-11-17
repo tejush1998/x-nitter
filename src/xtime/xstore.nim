@@ -163,6 +163,11 @@ proc openStore*(path = "feed.db"): XStore =
     key TEXT PRIMARY KEY,
     value TEXT
   )""")
+  db.exec(sql"""CREATE TABLE IF NOT EXISTS user_summaries (
+    username TEXT PRIMARY KEY,
+    summary TEXT NOT NULL,
+    created_at TEXT
+  )""")
 
   var cols: HashSet[string]
   for row in db.getAllRows(sql"PRAGMA table_info(tweets)"):
@@ -191,6 +196,14 @@ proc getMeta*(store: XStore, key: string): string =
 proc setMeta*(store: XStore, key: string, value: string) =
   store.db.exec(sql("INSERT INTO meta (key, value) VALUES (" & esc(key) & ", " & esc(value) & ")" &
     " ON CONFLICT(key) DO UPDATE SET value = excluded.value"))
+
+proc getUserSummary*(store: XStore, username: string): string =
+  store.db.getValue(sql("SELECT summary FROM user_summaries WHERE username = " & esc(username)))
+
+proc setUserSummary*(store: XStore, username: string, summary: string) =
+  store.db.exec(sql("INSERT INTO user_summaries (username, summary, created_at) VALUES (" &
+    esc(username) & ", " & esc(summary) & ", " & esc(nowIso()) & ")" &
+    " ON CONFLICT(username) DO UPDATE SET summary = excluded.summary, created_at = excluded.created_at"))
 
 proc getMetaInt*(store: XStore, key: string): Option[int64] =
   let v = store.getMeta(key)

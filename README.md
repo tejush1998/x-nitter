@@ -43,14 +43,24 @@ non-addictive, without endless scrolling.
   from the dashboard.
 - **Tweet recommendations (experimental, off by default)** — switch it on
   from the dashboard's **Labs** menu; the setting is saved in the local
-  database. While it is on, every tweet page gets a sidebar of 4-5 tweets
-  worth reading next. The LLM reads the tweet and a sample of its replies,
+  database. While it is on, every tweet page gets a **Recommended** button
+  in the sidebar; clicking it finds 4-5 tweets worth reading next (nothing
+  runs until you click). The LLM reads the tweet and a sample of its replies,
   writes three X searches (the core topic, an angle the replies raise, and
   fresh takes), then picks the best results with a one-line reason each.
   The tweet's replies fold under a **Show replies** toggle.
-  Results are kept in memory per tweet until the server restarts; the
-  sidebar's Refresh button runs it again. The LLM provider and fallbacks are
-  set under `recommend` in `xtime.config.json`.
+  Results are kept in memory per tweet until the server restarts and show
+  without a click when you reopen the tweet; the sidebar's Refresh button
+  runs it again. The LLM provider and fallbacks are
+  set under `recommend` in `xtime.config.json`, along with `days` (default
+  14): how far before the viewed tweet the searches look.
+- **Profile summaries**: the ✦ button next to a profile's follow button
+  toggles a section above the bio summarizing the user's posts, quotes and
+  replies from the last two weeks (up to 100, no plain retweets): a
+  one-line overview, then one line per topic they post about with their
+  stance on it. Summaries are saved in the `user_summaries` table of
+  `feed.db` until the section's Refresh link writes a new one. The provider (no fallback), window and limits are set
+  under `summary` in `xtime.config.json`.
 - **Scrape API** — trigger scrapes and reclassification from the UI or curl.
 - All upstream Nitter features remain: no-JS front-end, RSS, themes,
   lightweight pages.

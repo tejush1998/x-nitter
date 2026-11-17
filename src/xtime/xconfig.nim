@@ -33,6 +33,13 @@ type
     providers*: seq[LlmProvider]  # tried in order until one answers
     replySample*: int
     picks*: int
+    days*: int                    # look-back window before the viewed tweet
+
+  SummaryOpts* = object
+    provider*: LlmProvider        # no fallback
+    days*: int                    # look-back window
+    maxTweets*: int
+    maxPages*: int                # Replies-tab pages (about 20 posts each)
 
   XTimeConf* = object
     autoScrape*: bool
@@ -45,6 +52,7 @@ type
     classify*: ClassifyOpts
     translate*: TranslateOpts
     recommend*: RecommendOpts
+    summary*: SummaryOpts
 
 proc loadDotEnv*(path = ".env") =
   ## Minimal .env loader: KEY=VALUE lines, does not override existing env.
@@ -131,7 +139,17 @@ proc loadXTimeConf*(path = "xtime.config.json"): XTimeConf =
   result.recommend = RecommendOpts(
     providers: @[parseProvider(raw{"providers"}, r{"provider"}.getStr(providerName))],
     replySample: optInt(r, "replySample", 8),
-    picks: optInt(r, "picks", 5)
+    picks: optInt(r, "picks", 5),
+    days: optInt(r, "days", 14)
   )
   for f in r{"fallback"}.getElems():
     result.recommend.providers.add parseProvider(raw{"providers"}, f.getStr())
+
+  # profile summaries; the provider defaults to classify's
+  let s = raw{"summary"}
+  result.summary = SummaryOpts(
+    provider: parseProvider(raw{"providers"}, s{"provider"}.getStr(providerName)),
+    days: optInt(s, "days", 14),
+    maxTweets: optInt(s, "maxTweets", 100),
+    maxPages: optInt(s, "maxPages", 10)
+  )
