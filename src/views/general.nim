@@ -54,6 +54,7 @@ proc renderHead*(prefs: Prefs; cfg: Config; req: Request; titleText=""; desc="";
     link(rel="stylesheet", type="text/css", href="/css/fontello.css?v=7")
     link(rel="stylesheet", type="text/css", href="/css/recommend.css?v=7")
     link(rel="stylesheet", type="text/css", href="/css/summary.css?v=2")
+    link(rel="stylesheet", type="text/css", href="/css/translate.css?v=1")
 
     if theme.len > 0:
       link(rel="stylesheet", type="text/css", href=(&"/css/themes/{theme}.css"))
@@ -86,6 +87,7 @@ proc renderHead*(prefs: Prefs; cfg: Config; req: Request; titleText=""; desc="";
     script(src="/js/follow.js?v=3", `defer`="")
     script(src="/js/recommend.js?v=7", `defer`="")
     script(src="/js/summary.js?v=2", `defer`="")
+    script(src="/js/translate.js?v=2", `defer`="")
 
     title:
       if titleText.len > 0:
@@ -145,7 +147,7 @@ proc renderMain*(body: VNode; req: Request; cfg: Config; prefs=defaultPrefs;
                rss, twitterLink, oembed)
 
     let bodyClass = if prefs.stickyNav: "fixed-nav" else: ""
-    body(class=bodyClass):
+    body(class=bodyClass, data-translate=(if prefs.autoTranslate: "auto" else: "manual")):
       renderNavbar(cfg, req, rss, twitterLink)
 
       tdiv(class="container"):

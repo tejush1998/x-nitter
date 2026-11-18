@@ -331,7 +331,7 @@ proc renderQuote(quote: Tweet; prefs: Prefs; path: string): VNode =
       renderReply(quote)
 
     if quote.text.len > 0:
-      tdiv(class="quote-text", dir="auto"):
+      tdiv(class="quote-text", dir="auto", data-tid= $quote.id, data-lang=quote.lang):
         verbatim replaceUrls(quote.text, prefs)
 
     if quote.media.len > 0:
@@ -416,7 +416,7 @@ proc renderTweet*(tweet: Tweet; prefs: Prefs; path: string; class=""; index=0;
       if prefs.bidiSupport:
         tweetClass &= " tweet-bidi"
 
-      tdiv(class=tweetClass, dir="auto"):
+      tdiv(class=tweetClass, dir="auto", data-tid= $tweet.id, data-lang=tweet.lang):
         verbatim replaceUrls(tweet.text, prefs) & renderLocation(tweet)
 
       if tweet.attribution.isSome:

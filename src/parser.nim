@@ -494,6 +494,7 @@ proc parseTweet(js: JsonNode; jsCard: JsonNode = newJNull();
     threadId: js{"conversation_id_str"}.getId,
     replyId: js{"in_reply_to_status_id_str"}.getId,
     text: js{"full_text"}.getStr,
+    lang: js{"lang"}.getStr,
     time: time,
     hasThread: js{"self_thread"}.notNull,
     available: true,
@@ -615,6 +616,7 @@ proc parseGraphTweet*(js: JsonNode): Tweet =
       id: js{"rest_id"}.getId,
       available: true,
       text: js{"details", "full_text"}.getStr,
+      lang: js{"legacy", "lang"}.getStr,  # legacy holds only lang in this format
       time: js{"details", "created_at_ms"}.getTimeFromMs,
       replyId: js{"reply_to_results", "rest_id"}.getId,
       isAd: js{"content_disclosure", "advertising_disclosure", "is_paid_promotion"}.getBool,

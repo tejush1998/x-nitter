@@ -28,6 +28,7 @@ type
     apiKeyEnv*: string
     timeoutMs*: int
     reasoningEffort*: string
+    providers*: seq[LlmProvider]  # live page translation: provider, then fallbacks in order
 
   RecommendOpts* = object
     providers*: seq[LlmProvider]  # tried in order until one answers
@@ -133,6 +134,11 @@ proc loadXTimeConf*(path = "xtime.config.json"): XTimeConf =
     )
   )
   result.autoScrape = if raw{"autoScrape"}.isNil: true else: raw{"autoScrape"}.getBool()
+
+  # tweet/profile page translation also tries translate.fallback in order
+  result.translate.providers = @[tp]
+  for f in t{"fallback"}.getElems():
+    result.translate.providers.add parseProvider(raw{"providers"}, f.getStr())
 
   # tweet-page recommendations; the provider defaults to classify's
   let r = raw{"recommend"}

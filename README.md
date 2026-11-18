@@ -61,6 +61,19 @@ non-addictive, without endless scrolling.
   stance on it. Summaries are saved in the `user_summaries` table of
   `feed.db` until the section's Refresh link writes a new one. The provider (no fallback), window and limits are set
   under `summary` in `xtime.config.json`.
+- **Live translation**: on profiles, tweet pages and search, non-English
+  tweets, quoted tweets and the bio are translated to English in place, with
+  a "Translated from Japanese · Show original" toggle under each. X's own
+  language code on every tweet decides what is sent (bios have none, so a bio
+  is sent when it is in a non-Latin script or most of the page's tweets are
+  non-English); English and Hindi written in Latin letters are left as they
+  are. A small box in the top-right corner shows progress and offers Retry if
+  a request fails. Links, @mentions and #hashtags stay clickable. Results are
+  saved in the `translations` table of `feed.db`, so a page seen before
+  translates instantly. The provider and fallbacks are the ones under
+  `translate` in `xtime.config.json`; turning **Translate non-English tweets
+  automatically** off in Preferences puts a Translate link under each one
+  instead.
 - **Scrape API** — trigger scrapes and reclassification from the UI or curl.
 - All upstream Nitter features remain: no-JS front-end, RSS, themes,
   lightweight pages.
