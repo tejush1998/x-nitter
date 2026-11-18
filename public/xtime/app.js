@@ -545,10 +545,20 @@ const people = {
   active: 0,
   picked: false, // moved with the arrow keys since the last keystroke
   timer: null,
+  closeTimer: null, // closes the list a while after a background-tab open
   seq: 0,
 };
 
 const recentPeople = () => people.recent;
+
+// After cmd/ctrl/middle-click the list stays open for the next pick, then
+// closes this long after the last one unless you've gone back to the box.
+const PEOPLE_LINGER_MS = 5000;
+
+function lingerPeople() {
+  clearTimeout(people.closeTimer);
+  people.closeTimer = setTimeout(closePeople, PEOPLE_LINGER_MS);
+}
 
 async function postPeople(path, body) {
   const res = await api(path, {
@@ -597,9 +607,17 @@ function personEl(p, recent) {
   const link = el("a", "person-link");
   link.href = `${state.linkBase}/${p.username}`;
   link.target = "_blank";
-  link.addEventListener("click", () => {
+  link.addEventListener("click", (e) => {
     rememberPerson(p);
-    closePeople();
+    // cmd/ctrl+click opens a background tab: keep the list open for the next one
+    if (e.metaKey || e.ctrlKey) lingerPeople();
+    else closePeople();
+  });
+  // middle-click opens a background tab too, but fires auxclick instead of click
+  link.addEventListener("auxclick", (e) => {
+    if (e.button !== 1) return;
+    rememberPerson(p);
+    lingerPeople();
   });
 
   const pic = el("img", "person-pic");
@@ -637,6 +655,7 @@ function personEl(p, recent) {
 }
 
 function renderPeople() {
+  clearTimeout(people.closeTimer); // typing, forgetting or reopening means you're still using it
   const menu = $("#peopleMenu");
   const q = people.query.toLowerCase();
   const matches = (p) => p.username.toLowerCase().includes(q) || (p.fullname || "").toLowerCase().includes(q);
@@ -674,6 +693,7 @@ function renderPeople() {
 }
 
 function closePeople() {
+  clearTimeout(people.closeTimer);
   $("#peopleMenu").hidden = true;
   $("#peopleInput").setAttribute("aria-expanded", "false");
 }
