@@ -30,7 +30,6 @@ cache.db*
 # built binaries (xnitter.new is update.sh's build before the swap)
 xnitter
 xnitter.new
-xtimecli
 
 # docker compose volume
 /data/

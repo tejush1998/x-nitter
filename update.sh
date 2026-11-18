@@ -1,5 +1,5 @@
 #!/bin/bash
-# Update x-nitter: pull this fork (origin, tejush1998/x-nitter), rebuild ./xnitter and ./xtimecli,
+# Update x-nitter: pull this fork (origin, tejush1998/x-nitter), rebuild ./xnitter,
 # regenerate css/md, and restart.
 set -e
 cd "$(dirname "$0")"
@@ -7,7 +7,6 @@ LOG=/tmp/xnitter.log
 git pull --ff-only
 # build next to the running binary, then swap it in, so the running server's file isn't rewritten under it
 nim c -d:ssl --threads:off -o:./xnitter.new src/nitter.nim
-nim c -d:ssl --threads:off -o:./xtimecli src/xtimecli.nim
 nim c -o:/tmp/gencss tools/gencss
 DYLD_LIBRARY_PATH=/opt/homebrew/opt/libsass/lib /tmp/gencss
 nimble -l md

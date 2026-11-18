@@ -34,7 +34,7 @@ non-addictive, without endless scrolling.
 - **Logged-in timeline scraping** — the feed is fetched in batches with your
   own X session through a small Python helper bundled with the project, which
   uses a browser-impersonating client so X treats it like a normal browser.
-  Scrapes can be triggered from the dashboard UI, the API, or the terminal.
+  Scrapes can be triggered from the dashboard UI or the API.
 - **Local tweet store** — every batch is persisted to a local SQLite database,
   so browsing is instant and works offline.
 - **LLM classification & translation** — tweets are classified into your

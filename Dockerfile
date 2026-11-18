@@ -26,7 +26,6 @@ RUN pip install --no-cache-dir twifork==2.3.5 curl_cffi==0.7.4
 
 WORKDIR /app
 COPY --from=nim /src/nitter/nitter ./xnitter
-COPY --from=nim /src/nitter/xtimecli ./
 COPY --from=nim /src/nitter/public ./public
 COPY scraper.py nitter.example.conf xtime.config.example.json docker-entrypoint.sh ./
 
