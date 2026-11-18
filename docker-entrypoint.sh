@@ -10,7 +10,9 @@ fi
 
 if [ ! -f "$NITTER_CONF_FILE" ]; then
   key=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
-  sed -e 's|^hostname = "[^"]*"|hostname = "localhost:8080"|' \
+  # 0.0.0.0 inside the container; compose.yml publishes it on 127.0.0.1 only
+  sed -e 's|^address = .*|address = "0.0.0.0"|' \
+      -e 's|^hostname = "[^"]*"|hostname = "localhost:8080"|' \
       -e 's|^sqlitePath = "[^"]*"|sqlitePath = "/data/cache.db"|' \
       -e "s|^hmacKey = .*|hmacKey = \"$key\"|" \
       nitter.example.conf > "$NITTER_CONF_FILE"
