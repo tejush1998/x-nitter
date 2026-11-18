@@ -1,0 +1,40 @@
+{
+  "autoScrape": false,
+  "topics": [],
+  "maxTopics": 20,
+  "pages": 3,
+  "countPerPage": 20,
+  "minPollIntervalSec": 60,
+  "linkBase": "http://localhost:8080",
+  "providers": {
+    "openrouter": {
+      "model": "z-ai/glm-5.3-flash",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "apiKeyEnv": "LLM_API_KEY",
+      "timeoutMs": 60000,
+      "reasoningEffort": "low"
+    }
+  },
+  "classify": {
+    "provider": "openrouter",
+    "mode": "chunked",
+    "chunkSize": 20,
+    "chunkConcurrency": 3
+  },
+  "translate": {
+    "enabled": true,
+    "provider": "openrouter"
+  },
+  "recommend": {
+    "provider": "openrouter",
+    "replySample": 8,
+    "picks": 4,
+    "days": 14
+  },
+  "summary": {
+    "provider": "openrouter",
+    "days": 14,
+    "maxTweets": 100,
+    "maxPages": 10
+  }
+}

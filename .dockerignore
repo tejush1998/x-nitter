@@ -4,3 +4,20 @@ LICENSE
 docker-compose.yml
 Dockerfile
 tests/
+
+# secrets and local state
+.git
+.env
+.venv
+__pycache__/
+cookies.json
+sessions.json*
+nitter.conf
+*.db
+*.db-*
+data/
+
+# local builds and deps (the image builds its own)
+nimbledeps/
+nimble.paths
+xnitter*

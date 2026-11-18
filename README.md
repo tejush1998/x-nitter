@@ -34,7 +34,7 @@ non-addictive, without endless scrolling.
 - **Logged-in timeline scraping** — the feed is fetched in batches with your
   own X session through a small Python helper bundled with the project, which
   uses a browser-impersonating client so X treats it like a normal browser.
-  Scrapes can be triggered from the dashboard UI, the API, or the terminal.
+  Scrapes can be triggered from the dashboard UI or the API.
 - **Local tweet store** — every batch is persisted to a local SQLite database,
   so browsing is instant and works offline.
 - **LLM classification & translation** — tweets are classified into your
@@ -65,79 +65,108 @@ non-addictive, without endless scrolling.
 - All upstream Nitter features remain: no-JS front-end, RSS, themes,
   lightweight pages.
 
-## Cookies
+## Setup
 
-Everything logged-in runs on your own X session, which means two cookies from
-a browser where you are logged in to x.com: `auth_token` and `ct0`. (Doesnt expire for months)
+You need Docker, an X account, and an API key for an OpenAI-compatible LLM
+API (the default config uses [OpenRouter](https://openrouter.ai/keys)).
 
-1. Log in to x.com in your browser.
-2. Open DevTools → Application (Firefox: Storage) → Cookies → `https://x.com`.
-3. Copy the values of `auth_token` and `ct0`.
-4. Put them in a `.env` file in the repo root:
-
-   ```
-   AUTH_TOKEN=<auth_token value>
-   CT0=<ct0 value>
-   ```
-
-5. Run the included session generator so Nitter's own API requests use the
-   same cookies:
+1. **Copy two cookies from X.** Log in to x.com in your browser, open
+   DevTools → Application (Firefox: Storage) → Cookies → `https://x.com`, and
+   copy the values of `auth_token` and `ct0`. They last for months.
+2. **Download x-nitter and fill in `.env`:**
 
    ```bash
-   node --env-file=.env make_sessions.mjs
+   git clone https://github.com/tejush1998/x-nitter.git
+   cd x-nitter
+   cp .env.example .env   # AUTH_TOKEN, CT0 and LLM_API_KEY
    ```
 
-   Re-run it whenever you refresh the cookies.
+3. **Start it:**
 
-- Cookies expire periodically — if you see "Cookies are expired or invalid",
-  re-export both values and re-run the generator.
-- Treat these cookies like passwords: everything holding them (`.env`,
-  session and cookie files) is gitignored and must never be committed.
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. Open `http://localhost:8080/xtime/` and click **Scrape**. Nitter's own
+   pages (profiles, tweets, search, RSS) are at `http://localhost:8080/`.
+
+Good to know:
+
+- Everything the server keeps is in `./data`. On the first start it writes
+  `nitter.conf` (with a random `hmacKey`) and `xtime.config.json` there, next
+  to `feed.db` and `cache.db`. After editing either file, run
+  `docker compose restart`.
+- When a scrape fails with "Cookies are expired or invalid", copy fresh values
+  into `.env` and run `docker compose up -d --force-recreate`.
+- Treat the cookies like passwords: `.env` and `./data` hold them, and both
+  are gitignored.
+- Files in `./data` are owned by uid/gid 1000; set `PUID` and `PGID` in
+  `.env` to change that.
+- To update: `git pull && docker compose up -d --build`.
+- To check it's working: `docker compose logs` shows "successfully added 1
+  valid account sessions", and `curl http://localhost:8080/api/status`
+  returns the dashboard's job status.
 
 ## Feed configuration
 
-The feed is configured in a JSON file (`xtime.config.json`, repo root,
-gitignored):
+`xtime.config.json` (in `./data` with Docker) sets what gets fetched and how
+the LLM sorts it:
 
-- `topics` — the topic list the LLM sorts tweets into
-- `providers` + `classify.provider` / `translate.provider` — an
-  OpenAI-compatible endpoint: `model`, `baseUrl`, `apiKeyEnv` (name of an env
-  var holding the API key, e.g. `OPENAI_API_KEY` set in `.env`), `timeoutMs`,
-  and optionally `reasoningEffort` (sent as `reasoning_effort`, e.g. `"low"`)
-- `classify.mode` — `"single"` sends the whole batch in one call; `"chunked"`
-  first names up to `maxTopics` topics for the whole batch, then sends
-  `chunkSize` tweets per call, `chunkConcurrency` at a time, using only those
-- `translate.enabled` — turn translation on/off
-- `pages`, `countPerPage`, `maxTopics`, `minPollIntervalSec`, `linkBase`
+- `topics`: the topics to sort tweets into. Leave it empty (`[]`) and the LLM
+  names topics itself, at most `maxTopics` of them.
+- `providers`: named OpenAI-compatible endpoints, each with `model`,
+  `baseUrl`, `apiKeyEnv` (the variable in `.env` that holds the key),
+  `timeoutMs`, and optionally `reasoningEffort` (sent as `reasoning_effort`,
+  e.g. `"low"`).
+- `classify`: `provider` and `mode`. `"single"` sends the whole batch in one
+  call; `"chunked"` sends `chunkSize` tweets per call, `chunkConcurrency` at a
+  time, and with empty `topics` one extra call names the batch's topics first.
+- `translate`: `enabled` and `provider`.
+- `recommend`: `provider` (defaults to classify's), `fallback` (providers to
+  try next, in order), `replySample` (replies the LLM reads), `picks` (tweets
+  it suggests) and `days` (how far back the searches look).
+- `summary`: `provider` (no fallback), `days`, `maxTweets` and `maxPages`
+  (Replies-tab pages to read).
+- `pages` × `countPerPage`: how many tweets one scrape fetches.
+- `minPollIntervalSec`: the shortest time allowed between two scrapes.
+- `autoScrape`: when `true`, the server scrapes on start if there's no batch
+  for today yet. A config without the key has it on; the example turns it off.
+- `linkBase`: where tweet links on the dashboard point. Change it from
+  `http://localhost:8080` if you open the dashboard from another device.
 
-## Python setup
+## Without Docker
 
-The feed backend needs one Python package (a maintained twikit fork
-with browser impersonation). Create a virtualenv in the repo root:
+For working on the code, or to run x-nitter as a single native binary. You
+need [Nim](https://nim-lang.org/install.html) 2.2, Python 3.10+, Node.js
+20.6+ (only for `make_sessions.mjs`) and libsass; on Debian/Ubuntu also
+`libpcre3` and `libsqlite3-0`. With `.env` filled in as above, from the repo
+root:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install twifork
+nimble install -y --depsOnly
+nimble scss && nimble md      # the CSS and the About page
+cp nitter.example.conf nitter.conf
+cp xtime.config.example.json xtime.config.json
+python3 -m venv .venv && .venv/bin/pip install twifork curl_cffi
+node --env-file=.env make_sessions.mjs
+nim c -d:release -o:./xnitter src/nitter.nim && ./xnitter
 ```
 
-## Running
-
-Once your cookies are in `.env` and the Python setup below is done, one command
-builds and starts the server:
-
-```bash
-nim c -d:ssl --threads:off -o:./xnitter src/nitter.nim && ./xnitter
-```
-
-Nitter listens on the address/port set in `nitter.conf` (default
-`127.0.0.1:8080`); the feed dashboard is at `/xtime/`.
-
-## Installation
-
-- [Nim](https://nim-lang.org/install.html) to compile, Python 3 (with `venv`) and
-  Node.js for the feed helper. The cache is a SQLite file (`cache.db`); build with
-  `-d:redisCache` to use Redis/Valkey instead, as upstream Nitter does
-- On Debian/Ubuntu also install `libpcre` and `libsass-dev`
-- `cp nitter.example.conf nitter.conf` and adjust address/port
+- In `nitter.conf`, set `hmacKey` to a random value (`openssl rand -hex 32`).
+  The example listens on all interfaces (`address = "0.0.0.0"`), so anyone on
+  your network can use the dashboard, likes and follows included; set
+  `address = "127.0.0.1"` to keep it on this machine.
+- Re-run `make_sessions.mjs` after putting new cookies in `.env`.
+- The server reads `nitter.conf`, `sessions.jsonl`, `xtime.config.json`,
+  `feed.db` and `.env` from the folder it starts in. `NITTER_CONF_FILE`,
+  `NITTER_SESSIONS_FILE`, `XTIME_CONF_FILE` and `XTIME_DB_FILE` point it
+  elsewhere.
+- Run one server per port: x-nitter binds with `reusePort`, so a second one
+  on 8080 silently splits the requests with the first.
+- The cache is a SQLite file (`cache.db`); build with `-d:redisCache` to use
+  Redis/Valkey instead, as upstream Nitter does.
+- On a Mac, `nimble scss` can't find Homebrew's libsass. Build the CSS
+  generator and run it directly instead:
+  `nim c -o:/tmp/gencss tools/gencss && DYLD_LIBRARY_PATH=/opt/homebrew/opt/libsass/lib /tmp/gencss`.
 
 Based on [Nitter](https://github.com/zedeus/nitter) (AGPLv3).

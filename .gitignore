@@ -27,7 +27,11 @@ xtime-env
 feed.db*
 cache.db*
 
-# built binaries (xnitter.new is update.sh's build before the swap)
+# built binary
 xnitter
-xnitter.new
-xtimecli
+
+# docker compose volume
+/data/
+
+# feed config, from xtime.config.example.json
+xtime.config.json
