@@ -244,7 +244,7 @@ proc createXTimeRouter*(store: XStore, conf: XTimeConf) =
         bad = e.msg
       if not translateEnabled():
         resp Http409, @[("Content-Type", "application/json")], $ %*{
-          "error": "Translation is off (xtime.config.json → translate.enabled)"
+          "error": "Translation is off (\"translate\" in xtime.config.json)"
         }
       elif bad.len > 0:
         resp Http400, @[("Content-Type", "application/json")], $ %*{"error": bad}

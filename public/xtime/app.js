@@ -5,7 +5,6 @@ const state = {
   likedOnly: false,
   running: false,
   busy: false,
-  linkBase: "http://localhost:8080",
   batch: null, // null = latest batch
   currentBatch: null,
   _lastActive: null,
@@ -144,7 +143,7 @@ function tweetEl(t) {
     if (t.author_username && t.id) {
       const a = document.createElement("a");
       a.className = "tweet-link view-link";
-      a.href = `${state.linkBase}/${t.author_username}/status/${t.id}`;
+      a.href = `/${t.author_username}/status/${t.id}`;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
       a.textContent = "view ↗";
@@ -306,7 +305,6 @@ async function render() {
   const likedQ = state.likedOnly ? "&liked=1" : "";
   const snap = await api(`/api/snapshot?noise=${state.noise ? 1 : 0}${batchQ}${likedQ}`);
   const { stats, rows } = snap;
-  if (snap.linkBase) state.linkBase = snap.linkBase;
   state.currentBatch = snap.currentBatch;
   renderBatchSelect(snap);
 
@@ -605,7 +603,7 @@ function personEl(p, recent) {
   if (recent) row.dataset.recent = "1";
 
   const link = el("a", "person-link");
-  link.href = `${state.linkBase}/${p.username}`;
+  link.href = `/${p.username}`;
   link.target = "_blank";
   link.addEventListener("click", (e) => {
     rememberPerson(p);
@@ -680,7 +678,7 @@ function renderPeople() {
       menu.appendChild(el("div", "people-note", "No people found"));
     }
     const all = el("a", "people-all", `All results for “${people.query}” →`);
-    all.href = `${state.linkBase}/search?f=users&q=${encodeURIComponent(people.query)}`;
+    all.href = `/search?f=users&q=${encodeURIComponent(people.query)}`;
     all.target = "_blank";
     menu.appendChild(all);
   }

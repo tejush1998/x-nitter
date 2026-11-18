@@ -51,16 +51,16 @@ non-addictive, without endless scrolling.
   The tweet's replies fold under a **Show replies** toggle.
   Results are kept in memory per tweet until the server restarts and show
   without a click when you reopen the tweet; the sidebar's Refresh button
-  runs it again. The LLM provider and fallbacks are
-  set under `recommend` in `xtime.config.json`, along with `days` (default
-  14): how far before the viewed tweet the searches look.
+  runs it again. How many replies it reads, how many tweets it suggests and
+  how far back the searches look are set under `recommend` in
+  `xtime.config.json`.
 - **Profile summaries**: the ✦ button next to a profile's follow button
   toggles a section above the bio summarizing the user's posts, quotes and
   replies from the last two weeks (up to 100, no plain retweets): a
   one-line overview, then one line per topic they post about with their
   stance on it. Summaries are saved in the `user_summaries` table of
-  `feed.db` until the section's Refresh link writes a new one. The provider (no fallback), window and limits are set
-  under `summary` in `xtime.config.json`.
+  `feed.db` until the section's Refresh link writes a new one. The window
+  and limits are set under `summary` in `xtime.config.json`.
 - **Live translation**: on profiles, tweet pages and search, non-English
   tweets, quoted tweets and the bio are translated to English in place, with
   a "Translated from Japanese · Show original" toggle under each. X's own
@@ -70,8 +70,7 @@ non-addictive, without endless scrolling.
   are. A small box in the top-right corner shows progress and offers Retry if
   a request fails. Links, @mentions and #hashtags stay clickable. Results are
   saved in the `translations` table of `feed.db`, so a page seen before
-  translates instantly. The provider and fallbacks are the ones under
-  `translate` in `xtime.config.json`; turning **Translate non-English tweets
+  translates instantly. Turning **Translate non-English tweets
   automatically** off in Preferences puts a Translate link under each one
   instead.
 - **Scrape API** — trigger scrapes and reclassification from the UI or curl.
@@ -107,8 +106,9 @@ Good to know:
 
 - Everything the server keeps is in `./data`. On the first start it writes
   `nitter.conf` (with a random `hmacKey`) and `xtime.config.json` there, next
-  to `feed.db` and `cache.db`. After editing either file, run
-  `docker compose restart`.
+  to `feed.db` and `cache.db`. `xtime.config.json` sets the topics, the LLM
+  and its fallbacks, with a comment on each setting. After editing either
+  file, run `docker compose restart`.
 - When a scrape fails with "Cookies are expired or invalid", copy fresh values
   into `.env` and run `docker compose up -d --force-recreate`.
 - Treat the cookies like passwords: `.env` and `./data` hold them, and both
@@ -119,33 +119,6 @@ Good to know:
 - To check it's working: `docker compose logs` shows "successfully added 1
   valid account sessions", and `curl http://localhost:8080/api/status`
   returns the dashboard's job status.
-
-## Feed configuration
-
-`xtime.config.json` (in `./data` with Docker) sets what gets fetched and how
-the LLM sorts it:
-
-- `topics`: the topics to sort tweets into. Leave it empty (`[]`) and the LLM
-  names topics itself, at most `maxTopics` of them.
-- `providers`: named OpenAI-compatible endpoints, each with `model`,
-  `baseUrl`, `apiKeyEnv` (the variable in `.env` that holds the key),
-  `timeoutMs`, and optionally `reasoningEffort` (sent as `reasoning_effort`,
-  e.g. `"low"`).
-- `classify`: `provider` and `mode`. `"single"` sends the whole batch in one
-  call; `"chunked"` sends `chunkSize` tweets per call, `chunkConcurrency` at a
-  time, and with empty `topics` one extra call names the batch's topics first.
-- `translate`: `enabled` and `provider`.
-- `recommend`: `provider` (defaults to classify's), `fallback` (providers to
-  try next, in order), `replySample` (replies the LLM reads), `picks` (tweets
-  it suggests) and `days` (how far back the searches look).
-- `summary`: `provider` (no fallback), `days`, `maxTweets` and `maxPages`
-  (Replies-tab pages to read).
-- `pages` × `countPerPage`: how many tweets one scrape fetches.
-- `minPollIntervalSec`: the shortest time allowed between two scrapes.
-- `autoScrape`: when `true`, the server scrapes on start if there's no batch
-  for today yet. A config without the key has it on; the example turns it off.
-- `linkBase`: where tweet links on the dashboard point. Change it from
-  `http://localhost:8080` if you open the dashboard from another device.
 
 ## Without Docker
 

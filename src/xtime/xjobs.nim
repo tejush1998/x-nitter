@@ -1,6 +1,6 @@
 # x-time job registry: single active job + history (mirror of server.js jobs)
-import std/[json, asyncdispatch, times, options]
-import xconfig, xstore, xengine
+import std/[json, asyncdispatch]
+import xstore
 
 type
   XJob* = ref object
@@ -103,20 +103,3 @@ proc startJob*(kind: string, source: string,
   activeJob = job
   asyncCheck runJob(job)
   return job
-
-proc maybeAutoScrape*(store: XStore, conf: XTimeConf) =
-  ## Auto-scrape on boot when no batch exists for today and poll interval passed.
-  ## Disabled when autoScrape is false in xtime.config.json — use the UI Scrape
-  ## button (POST /api/scrape) to run manually.
-  if not conf.autoScrape:
-    echo "[xtime] auto-scrape: disabled (autoScrape=false in xtime.config.json)"
-    return
-  let remaining = pollTooSoonNow(store, conf.minPollIntervalSec)
-  if store.hasBatchOnDay(now()): return
-  if remaining.isSome: return
-  echo "[xtime] auto-scrape: no batch for today, starting"
-  try:
-    discard startJob("scrape", "auto") do() -> Future[JsonNode] {.async.}:
-      await scrapePoll(store, conf, conf.countPerPage, conf.pages, "auto")
-  except JobBusyError:
-    discard

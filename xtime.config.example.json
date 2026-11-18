@@ -1,40 +1,40 @@
 {
-  "autoScrape": false,
+  // Topics to sort tweets into. Leave empty and the LLM names them itself.
   "topics": [],
+  // The most distinct topics one scrape can have.
   "maxTopics": 20,
+  // Pages of your For You timeline per scrape, about 20 tweets each.
   "pages": 3,
-  "countPerPage": 20,
-  "minPollIntervalSec": 60,
-  "linkBase": "http://localhost:8080",
+  // Translate non-English tweets to English.
+  "translate": true,
+
+  // The LLM every feature uses. Translation and recommendations try the
+  // fallbacks in order when it fails.
+  "provider": "openrouter",
+  "fallback": [],
+
+  // OpenAI-compatible endpoints. apiKeyEnv names the .env variable that holds the key.
+  // Optional per provider: timeoutMs (default 60000) and reasoningEffort (e.g. "low").
   "providers": {
     "openrouter": {
       "model": "z-ai/glm-5.3-flash",
       "baseUrl": "https://openrouter.ai/api/v1",
       "apiKeyEnv": "LLM_API_KEY",
-      "timeoutMs": 60000,
       "reasoningEffort": "low"
     }
   },
-  "classify": {
-    "provider": "openrouter",
-    "mode": "chunked",
-    "chunkSize": 20,
-    "chunkConcurrency": 3
-  },
-  "translate": {
-    "enabled": true,
-    "provider": "openrouter"
-  },
+
+  // Labs → Recommended, on tweet pages
   "recommend": {
-    "provider": "openrouter",
-    "replySample": 8,
-    "picks": 4,
-    "days": 14
+    "replySample": 8, // replies the LLM reads before writing its searches
+    "picks": 4,       // tweets it suggests
+    "days": 14        // how far before the viewed tweet the searches look
   },
+
+  // The ✦ summary on profiles
   "summary": {
-    "provider": "openrouter",
-    "days": 14,
-    "maxTweets": 100,
-    "maxPages": 10
+    "days": 14,       // how many days of posts it reads
+    "maxTweets": 100, // the most posts it reads
+    "maxPages": 10    // Replies-tab pages it fetches, about 20 posts each
   }
 }
