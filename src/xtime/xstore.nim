@@ -46,6 +46,11 @@ type
     count*: int
     latest*: string
 
+  CachedTranslation* = object
+    source*: string       # the text that was sent, links as ⟦n⟧
+    lang*: string         # language name the model gave, e.g. "Japanese"
+    translation*: string  # "" when the model said it needs no translation
+
   XStore* = ref object
     db: DbConn
 
@@ -168,6 +173,13 @@ proc openStore*(path = "feed.db"): XStore =
     summary TEXT NOT NULL,
     created_at TEXT
   )""")
+  db.exec(sql"""CREATE TABLE IF NOT EXISTS translations (
+    key TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    lang TEXT,
+    translation TEXT,
+    created_at TEXT
+  )""")
 
   var cols: HashSet[string]
   for row in db.getAllRows(sql"PRAGMA table_info(tweets)"):
@@ -204,6 +216,21 @@ proc setUserSummary*(store: XStore, username: string, summary: string) =
   store.db.exec(sql("INSERT INTO user_summaries (username, summary, created_at) VALUES (" &
     esc(username) & ", " & esc(summary) & ", " & esc(nowIso()) & ")" &
     " ON CONFLICT(username) DO UPDATE SET summary = excluded.summary, created_at = excluded.created_at"))
+
+proc getTranslations*(store: XStore, keys: seq[string]): Table[string, CachedTranslation] =
+  ## Cached page translations by key (tweet id or "bio:<user id>").
+  if keys.len == 0: return
+  let q = "SELECT key, source, lang, translation FROM translations WHERE key IN (" &
+    keys.mapIt(esc(it)).join(",") & ")"
+  for r in store.db.getAllRows(sql(q)):
+    result[r[0]] = CachedTranslation(source: r[1], lang: r[2], translation: r[3])
+
+proc setTranslation*(store: XStore, key: string, t: CachedTranslation) =
+  store.db.exec(sql("INSERT INTO translations (key, source, lang, translation, created_at) VALUES (" &
+    esc(key) & ", " & esc(t.source) & ", " & esc(t.lang) & ", " & esc(t.translation) & ", " &
+    esc(nowIso()) & ")" &
+    " ON CONFLICT(key) DO UPDATE SET source = excluded.source, lang = excluded.lang," &
+    " translation = excluded.translation, created_at = excluded.created_at"))
 
 proc getMetaInt*(store: XStore, key: string): Option[int64] =
   let v = store.getMeta(key)

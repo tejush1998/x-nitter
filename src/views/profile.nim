@@ -43,7 +43,7 @@ proc renderUserCard*(user: User; prefs: Prefs; info: AccountInfo): VNode =
 
     tdiv(class="profile-card-extra"):
       if user.bio.len > 0:
-        tdiv(class="profile-bio"):
+        tdiv(class="profile-bio", data-uid=user.id):
           p(dir="auto"):
             verbatim replaceUrls(user.bio, prefs)
 

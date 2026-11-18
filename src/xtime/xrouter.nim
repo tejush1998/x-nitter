@@ -1,12 +1,12 @@
 # x-time jester router: UI + API (replaces server.js; CORS hack removed)
 import std/[json, strutils, asyncdispatch, options, os]
 import jester
-import xconfig, xstore, xscraper, xstatus, xengine, xjobs, xrecommend, xpeople, xsummary
+import xconfig, xstore, xscraper, xstatus, xengine, xjobs, xrecommend, xpeople, xsummary, xtranslate
 import ../routes/router_utils
 
 # Re-export what nitter.nim needs, but NOT xstore.Tweet / Assignment
 # (clashes with types.Tweet inside jester's routes macro expansion).
-export xconfig, xjobs, xengine, xscraper, xstatus, xrecommend, xpeople, xsummary
+export xconfig, xjobs, xengine, xscraper, xstatus, xrecommend, xpeople, xsummary, xtranslate
 export xstore except Tweet, Assignment
 
 var
@@ -23,6 +23,7 @@ proc createXTimeRouter*(store: XStore, conf: XTimeConf) =
   xtimeConf = conf
   initRecommend(conf.recommend, store.getMeta(recommendMetaKey) == "1")
   initSummary(conf.summary, store)
+  initTranslate(conf.translate, store)
   router xtime:
 
     get "/xtime":
@@ -231,6 +232,27 @@ proc createXTimeRouter*(store: XStore, conf: XTimeConf) =
         resp Http400, @[("Content-Type", "application/json")], $ %*{"error": "username is required"}
       else:
         respJson summaryJson(username, refresh = @"refresh" == "1")
+
+    post "/api/translate":
+      # Called by /js/translate.js with a page's non-English tweets and bio,
+      # up to 20 per request; see xtranslate.nim for the body.
+      var items: seq[TrItem]
+      var bad = ""
+      try:
+        items = parseTrItems(request.body)
+      except CatchableError as e:
+        bad = e.msg
+      if not translateEnabled():
+        resp Http409, @[("Content-Type", "application/json")], $ %*{
+          "error": "Translation is off (\"translate\" in xtime.config.json)"
+        }
+      elif bad.len > 0:
+        resp Http400, @[("Content-Type", "application/json")], $ %*{"error": bad}
+      else:
+        try:
+          respJson %*{"results": await translateItems(items)}
+        except CatchableError as e:
+          resp Http502, @[("Content-Type", "application/json")], $ %*{"error": cleanError(e.msg)}
 
     get "/api/experiments":
       respJson experimentsJson()

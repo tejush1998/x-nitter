@@ -324,6 +324,7 @@ type
     replyId*: int64
     user*: User
     text*: string
+    lang*: string       # X's language code ("ja", "en", "und"...)
     time*: DateTime
     reply*: seq[string]
     pinned*: bool

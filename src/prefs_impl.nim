@@ -66,6 +66,9 @@ genPrefs:
     bidiSupport(checkbox, false):
       "Support bidirectional text (makes clicking on tweets harder)"
 
+    autoTranslate(checkbox, true):
+      "Translate non-English tweets automatically (requires JavaScript)"
+
     hideTweetStats(checkbox, false):
       "Hide tweet stats (replies, retweets, likes)"
 

@@ -28,6 +28,7 @@ type
     apiKeyEnv*: string
     timeoutMs*: int
     reasoningEffort*: string
+    providers*: seq[LlmProvider]  # live page translation: provider, then fallbacks in order
 
   RecommendOpts* = object
     providers*: seq[LlmProvider]  # tried in order until one answers
@@ -42,13 +43,11 @@ type
     maxPages*: int                # Replies-tab pages (about 20 posts each)
 
   XTimeConf* = object
-    autoScrape*: bool
     topics*: seq[string]
     maxTopics*: int
     pages*: int
     countPerPage*: int
     minPollIntervalSec*: int
-    linkBase*: string
     classify*: ClassifyOpts
     translate*: TranslateOpts
     recommend*: RecommendOpts
@@ -72,7 +71,7 @@ proc loadDotEnv*(path = ".env") =
 
 proc parseProvider(providers: JsonNode, name: string): LlmProvider =
   if providers.isNil or providers{name}.isNil:
-    raise newException(ValueError, "config.json: unknown provider \"" & name & "\"")
+    raise newException(ValueError, "xtime.config.json: unknown provider \"" & name & "\"")
   LlmProvider(
     name: name,
     model: providers{name}{"model"}.getStr(),
@@ -89,6 +88,7 @@ proc optInt(node: JsonNode, key: string, default: int): int =
     default
 
 proc loadXTimeConf*(path = "xtime.config.json"): XTimeConf =
+  ## Accepts // and /* */ comments, as std/json's parser does.
   let raw = json.parseFile(path)
   var topics: seq[string] = @[]
   if raw{"topics"} != nil:
@@ -96,60 +96,54 @@ proc loadXTimeConf*(path = "xtime.config.json"): XTimeConf =
       let s = t.getStr().strip()
       if s.len > 0: topics.add s
 
-  let c = raw{"classify"}
-  let providerName = c{"provider"}.getStr()
+  let providerName = raw{"provider"}.getStr()
   if providerName.len == 0:
-    raise newException(ValueError, "config.json: classify.provider is not set")
-  let cp = parseProvider(raw{"providers"}, providerName)
+    raise newException(ValueError, "xtime.config.json: provider is not set")
+  let p = parseProvider(raw{"providers"}, providerName)
+  # translation and recommendations try the fallbacks in order after provider
+  var withFallback = @[p]
+  for f in raw{"fallback"}.getElems():
+    withFallback.add parseProvider(raw{"providers"}, f.getStr())
 
-  let t = raw{"translate"}
-  let tp = parseProvider(raw{"providers"}, t{"provider"}.getStr())
-
-  result = XTimeConf(
+  let maxTopics = raw{"maxTopics"}.getInt(20)
+  let r = raw{"recommend"}
+  let s = raw{"summary"}
+  XTimeConf(
     topics: topics,
-    maxTopics: raw{"maxTopics"}.getInt(20),
+    maxTopics: maxTopics,
     pages: raw{"pages"}.getInt(3),
-    countPerPage: raw{"countPerPage"}.getInt(20),
-    minPollIntervalSec: raw{"minPollIntervalSec"}.getInt(60),
-    linkBase: raw{"linkBase"}.getStr("http://localhost:8080"),
+    countPerPage: 20,
+    minPollIntervalSec: 60,
     classify: ClassifyOpts(
-      model: cp.model,
-      baseUrl: cp.baseUrl,
-      apiKeyEnv: cp.apiKeyEnv,
-      timeoutMs: cp.timeoutMs,
-      reasoningEffort: cp.reasoningEffort,
+      model: p.model,
+      baseUrl: p.baseUrl,
+      apiKeyEnv: p.apiKeyEnv,
+      timeoutMs: p.timeoutMs,
+      reasoningEffort: p.reasoningEffort,
       topics: topics,
-      maxTopics: raw{"maxTopics"}.getInt(20),
-      chunkSize: (if c{"mode"}.getStr() == "chunked": optInt(c, "chunkSize", 20) else: 0),
-      chunkConcurrency: optInt(c, "chunkConcurrency", 3)
+      maxTopics: maxTopics,
+      chunkSize: 20,
+      chunkConcurrency: 3
     ),
     translate: TranslateOpts(
-      enabled: if t{"enabled"}.isNil: true else: t{"enabled"}.getBool(),
-      model: tp.model,
-      baseUrl: tp.baseUrl,
-      apiKeyEnv: tp.apiKeyEnv,
-      timeoutMs: tp.timeoutMs,
-      reasoningEffort: tp.reasoningEffort
+      enabled: raw{"translate"}.getBool(true),
+      model: p.model,
+      baseUrl: p.baseUrl,
+      apiKeyEnv: p.apiKeyEnv,
+      timeoutMs: p.timeoutMs,
+      reasoningEffort: p.reasoningEffort,
+      providers: withFallback
+    ),
+    recommend: RecommendOpts(
+      providers: withFallback,
+      replySample: optInt(r, "replySample", 8),
+      picks: optInt(r, "picks", 4),
+      days: optInt(r, "days", 14)
+    ),
+    summary: SummaryOpts(
+      provider: p,
+      days: optInt(s, "days", 14),
+      maxTweets: optInt(s, "maxTweets", 100),
+      maxPages: optInt(s, "maxPages", 10)
     )
-  )
-  result.autoScrape = if raw{"autoScrape"}.isNil: true else: raw{"autoScrape"}.getBool()
-
-  # tweet-page recommendations; the provider defaults to classify's
-  let r = raw{"recommend"}
-  result.recommend = RecommendOpts(
-    providers: @[parseProvider(raw{"providers"}, r{"provider"}.getStr(providerName))],
-    replySample: optInt(r, "replySample", 8),
-    picks: optInt(r, "picks", 5),
-    days: optInt(r, "days", 14)
-  )
-  for f in r{"fallback"}.getElems():
-    result.recommend.providers.add parseProvider(raw{"providers"}, f.getStr())
-
-  # profile summaries; the provider defaults to classify's
-  let s = raw{"summary"}
-  result.summary = SummaryOpts(
-    provider: parseProvider(raw{"providers"}, s{"provider"}.getStr(providerName)),
-    days: optInt(s, "days", 14),
-    maxTweets: optInt(s, "maxTweets", 100),
-    maxPages: optInt(s, "maxPages", 10)
   )

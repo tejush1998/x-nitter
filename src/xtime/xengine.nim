@@ -266,7 +266,6 @@ proc getFeedSnapshot*(store: XStore, conf: XTimeConf, includeNoise: bool,
     "hasBatchToday": store.hasBatchOnDay(now()),
     "rows": rows,
     "nouns": getNounsView(store, includeNoise, currentBatch, likedOnly),
-    "likedOnly": likedOnly,
-    "linkBase": conf.linkBase
+    "likedOnly": likedOnly
   }
 

@@ -5,7 +5,6 @@ const state = {
   likedOnly: false,
   running: false,
   busy: false,
-  linkBase: "http://localhost:8080",
   batch: null, // null = latest batch
   currentBatch: null,
   _lastActive: null,
@@ -144,7 +143,7 @@ function tweetEl(t) {
     if (t.author_username && t.id) {
       const a = document.createElement("a");
       a.className = "tweet-link view-link";
-      a.href = `${state.linkBase}/${t.author_username}/status/${t.id}`;
+      a.href = `/${t.author_username}/status/${t.id}`;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
       a.textContent = "view ↗";
@@ -306,7 +305,6 @@ async function render() {
   const likedQ = state.likedOnly ? "&liked=1" : "";
   const snap = await api(`/api/snapshot?noise=${state.noise ? 1 : 0}${batchQ}${likedQ}`);
   const { stats, rows } = snap;
-  if (snap.linkBase) state.linkBase = snap.linkBase;
   state.currentBatch = snap.currentBatch;
   renderBatchSelect(snap);
 
@@ -545,10 +543,20 @@ const people = {
   active: 0,
   picked: false, // moved with the arrow keys since the last keystroke
   timer: null,
+  closeTimer: null, // closes the list a while after a background-tab open
   seq: 0,
 };
 
 const recentPeople = () => people.recent;
+
+// After cmd/ctrl/middle-click the list stays open for the next pick, then
+// closes this long after the last one unless you've gone back to the box.
+const PEOPLE_LINGER_MS = 5000;
+
+function lingerPeople() {
+  clearTimeout(people.closeTimer);
+  people.closeTimer = setTimeout(closePeople, PEOPLE_LINGER_MS);
+}
 
 async function postPeople(path, body) {
   const res = await api(path, {
@@ -595,11 +603,19 @@ function personEl(p, recent) {
   if (recent) row.dataset.recent = "1";
 
   const link = el("a", "person-link");
-  link.href = `${state.linkBase}/${p.username}`;
+  link.href = `/${p.username}`;
   link.target = "_blank";
-  link.addEventListener("click", () => {
+  link.addEventListener("click", (e) => {
     rememberPerson(p);
-    closePeople();
+    // cmd/ctrl+click opens a background tab: keep the list open for the next one
+    if (e.metaKey || e.ctrlKey) lingerPeople();
+    else closePeople();
+  });
+  // middle-click opens a background tab too, but fires auxclick instead of click
+  link.addEventListener("auxclick", (e) => {
+    if (e.button !== 1) return;
+    rememberPerson(p);
+    lingerPeople();
   });
 
   const pic = el("img", "person-pic");
@@ -637,6 +653,7 @@ function personEl(p, recent) {
 }
 
 function renderPeople() {
+  clearTimeout(people.closeTimer); // typing, forgetting or reopening means you're still using it
   const menu = $("#peopleMenu");
   const q = people.query.toLowerCase();
   const matches = (p) => p.username.toLowerCase().includes(q) || (p.fullname || "").toLowerCase().includes(q);
@@ -661,7 +678,7 @@ function renderPeople() {
       menu.appendChild(el("div", "people-note", "No people found"));
     }
     const all = el("a", "people-all", `All results for “${people.query}” →`);
-    all.href = `${state.linkBase}/search?f=users&q=${encodeURIComponent(people.query)}`;
+    all.href = `/search?f=users&q=${encodeURIComponent(people.query)}`;
     all.target = "_blank";
     menu.appendChild(all);
   }
@@ -674,6 +691,7 @@ function renderPeople() {
 }
 
 function closePeople() {
+  clearTimeout(people.closeTimer);
   $("#peopleMenu").hidden = true;
   $("#peopleInput").setAttribute("aria-expanded", "false");
 }

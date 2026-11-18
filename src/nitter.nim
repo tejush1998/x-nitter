@@ -75,8 +75,6 @@ createDebugRouter(cfg)
 
 createXTimeRouter(xtStore, xconf)
 
-maybeAutoScrape(xtStore, xconf)
-
 settings:
   port = Port(cfg.port)
   staticDir = normalizedPath(cfg.staticDir)

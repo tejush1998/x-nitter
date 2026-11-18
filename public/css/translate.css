@@ -1,0 +1,72 @@
+/* x-time: live translation of tweets and bios (filled by /js/translate.js).
+   Kept out of the Sass build; uses the theme variables so every theme works. */
+
+/* the original text while its translation shows (beats .tweet-bidi's !important) */
+.tweet-content[hidden],
+.quote-text[hidden],
+.profile-bio p[hidden] {
+  display: none !important;
+}
+
+.translate-label {
+  position: relative; /* above the quote's full-size link */
+  margin-top: 2px;
+  color: var(--fg_faded);
+  font-size: 12px;
+  pointer-events: all;
+}
+
+.quote .translate-label {
+  margin-top: -6px;
+  padding: 0 10px 8px;
+}
+
+.translate-progress {
+  position: fixed;
+  top: 58px; /* under the 50px navbar, clear of its icons */
+  right: 12px;
+  z-index: 1001;
+  width: 150px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--border_grey);
+  border-radius: 4px;
+  background-color: var(--bg_panel);
+  color: var(--fg_faded);
+  font-size: 11px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.translate-progress.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.translate-progress a {
+  pointer-events: auto;
+}
+
+.translate-progress.failed {
+  color: var(--error_red, #e0245e);
+}
+
+.translate-progress-bar {
+  height: 2px;
+  margin-top: 4px;
+  background-color: var(--border_grey);
+}
+
+.translate-progress-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background-color: var(--accent);
+  transition: width 0.3s;
+}
+
+.translate-progress.failed .translate-progress-bar i {
+  background-color: var(--error_red, #e0245e);
+}
