@@ -23,9 +23,7 @@
   },
   "translate": {
     "enabled": true,
-    "provider": "openrouter",
-    "chunkSize": 20,
-    "chunkConcurrency": 3
+    "provider": "openrouter"
   },
   "recommend": {
     "provider": "openrouter",

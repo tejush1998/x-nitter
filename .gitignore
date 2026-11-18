@@ -33,3 +33,6 @@ xnitter.new
 
 # docker compose volume
 /data/
+
+# feed config, from xtime.config.example.json
+xtime.config.json
