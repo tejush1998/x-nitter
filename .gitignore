@@ -31,3 +31,6 @@ cache.db*
 xnitter
 xnitter.new
 xtimecli
+
+# docker compose volume
+/data/

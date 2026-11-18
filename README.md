@@ -94,6 +94,32 @@ a browser where you are logged in to x.com: `auth_token` and `ct0`. (Doesnt expi
 - Treat these cookies like passwords: everything holding them (`.env`,
   session and cookie files) is gitignored and must never be committed.
 
+## Running with Docker
+
+The image has everything built in: Nitter, the feed dashboard and the Python
+helper. You only need Docker and the two cookies above.
+
+```bash
+git clone https://github.com/tejush1998/x-nitter.git
+cd x-nitter
+cp .env.example .env   # fill in AUTH_TOKEN, CT0 and LLM_API_KEY
+docker compose up -d --build
+```
+
+Then open `http://localhost:8080/xtime/` and click **Scrape**.
+
+- On the first start the container writes `nitter.conf` (with a random
+  `hmacKey`) and `xtime.config.json` to `./data`, next to `feed.db` and
+  `cache.db`. The feed config starts out on OpenRouter with
+  `z-ai/glm-5.3-flash`; edit `data/xtime.config.json` to set your topics or
+  another provider, then run `docker compose restart`.
+- The session file is written from `AUTH_TOKEN` and `CT0` on every start, so
+  `make_sessions.mjs` isn't needed. After putting new cookies in `.env`, run
+  `docker compose up -d --force-recreate`.
+- Files in `./data` are owned by uid/gid 1000; set `PUID` and `PGID` in
+  `.env` to change that.
+- To update: `git pull && docker compose up -d --build`.
+
 ## Feed configuration
 
 The feed is configured in a JSON file (`xtime.config.json`, repo root,

@@ -1,5 +1,6 @@
 # x-time CLI: poll / view / reclassify (replaces index.js)
 import std/[strutils, asyncdispatch, options, parseopt, sequtils, sets, tables]
+from std/os import getEnv
 import xtime/[xconfig, xstore, xscraper, xllm, xstatus, xengine]
 
 type CliFlags = object
@@ -61,8 +62,8 @@ proc classifyInto(store: XStore, conf: XTimeConf, tweets: seq[Tweet]): Future[se
     raise
 
 proc runAsync(flags: CliFlags) {.async.} =
-  let conf = loadXTimeConf()
-  let store = openStore()
+  let conf = loadXTimeConf(getEnv("XTIME_CONF_FILE", "xtime.config.json"))
+  let store = openStore(getEnv("XTIME_DB_FILE", "feed.db"))
 
   if flags.view:
     var batch = flags.batch
