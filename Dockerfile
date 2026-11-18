@@ -27,12 +27,12 @@ RUN pip install --no-cache-dir twifork==2.3.5 curl_cffi==0.7.4
 WORKDIR /app
 COPY --from=nim /src/nitter/nitter ./xnitter
 COPY --from=nim /src/nitter/public ./public
-COPY scraper.py nitter.example.conf xtime.config.example.json docker-entrypoint.sh ./
+COPY scraper.py nitter.example.conf xtime.config.example.jsonc docker-entrypoint.sh ./
 
 # Everything that changes at runtime lives in /data
 ENV NITTER_CONF_FILE=/data/nitter.conf \
     NITTER_SESSIONS_FILE=/data/sessions.jsonl \
-    XTIME_CONF_FILE=/data/xtime.config.json \
+    XTIME_CONF_FILE=/data/xtime.config.jsonc \
     XTIME_DB_FILE=/data/feed.db
 VOLUME /data
 EXPOSE 8080

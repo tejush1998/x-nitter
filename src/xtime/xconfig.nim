@@ -1,4 +1,4 @@
-# x-time config: xtime.config.json + .env loading
+# x-time config: xtime.config.jsonc + .env loading
 import std/[json, os, strutils]
 
 type
@@ -71,7 +71,7 @@ proc loadDotEnv*(path = ".env") =
 
 proc parseProvider(providers: JsonNode, name: string): LlmProvider =
   if providers.isNil or providers{name}.isNil:
-    raise newException(ValueError, "xtime.config.json: unknown provider \"" & name & "\"")
+    raise newException(ValueError, "xtime.config.jsonc: unknown provider \"" & name & "\"")
   LlmProvider(
     name: name,
     model: providers{name}{"model"}.getStr(),
@@ -87,7 +87,7 @@ proc optInt(node: JsonNode, key: string, default: int): int =
   else:
     default
 
-proc loadXTimeConf*(path = "xtime.config.json"): XTimeConf =
+proc loadXTimeConf*(path = "xtime.config.jsonc"): XTimeConf =
   ## Accepts // and /* */ comments, as std/json's parser does.
   let raw = json.parseFile(path)
   var topics: seq[string] = @[]
@@ -98,7 +98,7 @@ proc loadXTimeConf*(path = "xtime.config.json"): XTimeConf =
 
   let providerName = raw{"provider"}.getStr()
   if providerName.len == 0:
-    raise newException(ValueError, "xtime.config.json: provider is not set")
+    raise newException(ValueError, "xtime.config.jsonc: provider is not set")
   let p = parseProvider(raw{"providers"}, providerName)
   # translation and recommendations try the fallbacks in order after provider
   var withFallback = @[p]

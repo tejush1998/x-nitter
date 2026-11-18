@@ -53,14 +53,14 @@ non-addictive, without endless scrolling.
   without a click when you reopen the tweet; the sidebar's Refresh button
   runs it again. How many replies it reads, how many tweets it suggests and
   how far back the searches look are set under `recommend` in
-  `xtime.config.json`.
+  `xtime.config.jsonc`.
 - **Profile summaries**: the ✦ button next to a profile's follow button
   toggles a section above the bio summarizing the user's posts, quotes and
   replies from the last two weeks (up to 100, no plain retweets): a
   one-line overview, then one line per topic they post about with their
   stance on it. Summaries are saved in the `user_summaries` table of
   `feed.db` until the section's Refresh link writes a new one. The window
-  and limits are set under `summary` in `xtime.config.json`.
+  and limits are set under `summary` in `xtime.config.jsonc`.
 - **Live translation**: on profiles, tweet pages and search, non-English
   tweets, quoted tweets and the bio are translated to English in place, with
   a "Translated from Japanese · Show original" toggle under each. X's own
@@ -84,7 +84,8 @@ API (the default config uses [OpenRouter](https://openrouter.ai/keys)).
 
 1. **Copy two cookies from X.** Log in to x.com in your browser, open
    DevTools → Application (Firefox: Storage) → Cookies → `https://x.com`, and
-   copy the values of `auth_token` and `ct0`. They last for months.
+   copy the values of `auth_token` and `ct0`. They last for months and give
+   full access to your account, so keep `.env` private.
 2. **Download x-nitter and fill in `.env`:**
 
    ```bash
@@ -102,23 +103,10 @@ API (the default config uses [OpenRouter](https://openrouter.ai/keys)).
 4. Open `http://localhost:8080/xtime/` and click **Scrape**. Nitter's own
    pages (profiles, tweets, search, RSS) are at `http://localhost:8080/`.
 
-Good to know:
-
-- Everything the server keeps is in `./data`. On the first start it writes
-  `nitter.conf` (with a random `hmacKey`) and `xtime.config.json` there, next
-  to `feed.db` and `cache.db`. `xtime.config.json` sets the topics, the LLM
-  and its fallbacks, with a comment on each setting. After editing either
-  file, run `docker compose restart`.
-- When a scrape fails with "Cookies are expired or invalid", copy fresh values
-  into `.env` and run `docker compose up -d --force-recreate`.
-- Treat the cookies like passwords: `.env` and `./data` hold them, and both
-  are gitignored.
-- Files in `./data` are owned by uid/gid 1000; set `PUID` and `PGID` in
-  `.env` to change that.
-- To update: `git pull && docker compose up -d --build`.
-- To check it's working: `docker compose logs` shows "successfully added 1
-  valid account sessions", and `curl http://localhost:8080/api/status`
-  returns the dashboard's job status.
+Settings are in `data/xtime.config.jsonc`, each explained in a comment; run
+`docker compose restart` after editing. When a scrape fails with "Cookies are
+expired or invalid", put fresh values in `.env` and run
+`docker compose up -d --force-recreate`.
 
 ## Without Docker
 
@@ -132,27 +120,14 @@ root:
 nimble install -y --depsOnly
 nimble scss && nimble md      # the CSS and the About page
 cp nitter.example.conf nitter.conf
-cp xtime.config.example.json xtime.config.json
+cp xtime.config.example.jsonc xtime.config.jsonc
 python3 -m venv .venv && .venv/bin/pip install twifork curl_cffi
-node --env-file=.env make_sessions.mjs
+node --env-file=.env make_sessions.mjs   # again whenever the cookies change
 nim c -d:release -o:./xnitter src/nitter.nim && ./xnitter
 ```
 
-- In `nitter.conf`, set `hmacKey` to a random value (`openssl rand -hex 32`).
-  The example listens on all interfaces (`address = "0.0.0.0"`), so anyone on
-  your network can use the dashboard, likes and follows included; set
-  `address = "127.0.0.1"` to keep it on this machine.
-- Re-run `make_sessions.mjs` after putting new cookies in `.env`.
-- The server reads `nitter.conf`, `sessions.jsonl`, `xtime.config.json`,
-  `feed.db` and `.env` from the folder it starts in. `NITTER_CONF_FILE`,
-  `NITTER_SESSIONS_FILE`, `XTIME_CONF_FILE` and `XTIME_DB_FILE` point it
-  elsewhere.
-- Run one server per port: x-nitter binds with `reusePort`, so a second one
-  on 8080 silently splits the requests with the first.
-- The cache is a SQLite file (`cache.db`); build with `-d:redisCache` to use
-  Redis/Valkey instead, as upstream Nitter does.
-- On a Mac, `nimble scss` can't find Homebrew's libsass. Build the CSS
-  generator and run it directly instead:
-  `nim c -o:/tmp/gencss tools/gencss && DYLD_LIBRARY_PATH=/opt/homebrew/opt/libsass/lib /tmp/gencss`.
+On a Mac, `nimble scss` can't find Homebrew's libsass. Build the CSS generator
+and run it directly instead:
+`nim c -o:/tmp/gencss tools/gencss && DYLD_LIBRARY_PATH=/opt/homebrew/opt/libsass/lib /tmp/gencss`.
 
 Based on [Nitter](https://github.com/zedeus/nitter) (AGPLv3).

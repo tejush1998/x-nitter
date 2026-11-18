@@ -10,15 +10,20 @@ fi
 
 if [ ! -f "$NITTER_CONF_FILE" ]; then
   key=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
-  sed -e 's|^hostname = "[^"]*"|hostname = "localhost:8080"|' \
+  # 0.0.0.0 inside the container; compose.yml publishes it on 127.0.0.1 only
+  sed -e 's|^address = .*|address = "0.0.0.0"|' \
+      -e 's|^hostname = "[^"]*"|hostname = "localhost:8080"|' \
       -e 's|^sqlitePath = "[^"]*"|sqlitePath = "/data/cache.db"|' \
       -e "s|^hmacKey = .*|hmacKey = \"$key\"|" \
       nitter.example.conf > "$NITTER_CONF_FILE"
   echo "Wrote $NITTER_CONF_FILE"
 fi
 if [ ! -f "$XTIME_CONF_FILE" ]; then
-  cp xtime.config.example.json "$XTIME_CONF_FILE"
+  cp xtime.config.example.jsonc "$XTIME_CONF_FILE"
   echo "Wrote $XTIME_CONF_FILE"
+  if [ -f /data/xtime.config.json ]; then
+    echo "/data/xtime.config.json is no longer read; move your providers into $XTIME_CONF_FILE" >&2
+  fi
 fi
 
 # Rewritten on every start, so new cookies in .env only need a container restart

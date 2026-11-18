@@ -24,7 +24,7 @@ let
 
   sessionsPath = getEnv("NITTER_SESSIONS_FILE", "./sessions.jsonl")
 
-  xconf = loadXTimeConf(getEnv("XTIME_CONF_FILE", "xtime.config.json"))
+  xconf = loadXTimeConf(getEnv("XTIME_CONF_FILE", "xtime.config.jsonc"))
   xtStore = openStore(getEnv("XTIME_DB_FILE", "feed.db"))
 
 initSessionPool(cfg, sessionsPath)
