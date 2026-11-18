@@ -17,8 +17,11 @@ if [ ! -f "$NITTER_CONF_FILE" ]; then
   echo "Wrote $NITTER_CONF_FILE"
 fi
 if [ ! -f "$XTIME_CONF_FILE" ]; then
-  cp xtime.config.example.json "$XTIME_CONF_FILE"
+  cp xtime.config.example.jsonc "$XTIME_CONF_FILE"
   echo "Wrote $XTIME_CONF_FILE"
+  if [ -f /data/xtime.config.json ]; then
+    echo "/data/xtime.config.json is no longer read; move your providers into $XTIME_CONF_FILE" >&2
+  fi
 fi
 
 # Rewritten on every start, so new cookies in .env only need a container restart

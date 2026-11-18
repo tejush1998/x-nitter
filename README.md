@@ -53,14 +53,14 @@ non-addictive, without endless scrolling.
   without a click when you reopen the tweet; the sidebar's Refresh button
   runs it again. How many replies it reads, how many tweets it suggests and
   how far back the searches look are set under `recommend` in
-  `xtime.config.json`.
+  `xtime.config.jsonc`.
 - **Profile summaries**: the ✦ button next to a profile's follow button
   toggles a section above the bio summarizing the user's posts, quotes and
   replies from the last two weeks (up to 100, no plain retweets): a
   one-line overview, then one line per topic they post about with their
   stance on it. Summaries are saved in the `user_summaries` table of
   `feed.db` until the section's Refresh link writes a new one. The window
-  and limits are set under `summary` in `xtime.config.json`.
+  and limits are set under `summary` in `xtime.config.jsonc`.
 - **Live translation**: on profiles, tweet pages and search, non-English
   tweets, quoted tweets and the bio are translated to English in place, with
   a "Translated from Japanese · Show original" toggle under each. X's own
@@ -105,8 +105,8 @@ API (the default config uses [OpenRouter](https://openrouter.ai/keys)).
 Good to know:
 
 - Everything the server keeps is in `./data`. On the first start it writes
-  `nitter.conf` (with a random `hmacKey`) and `xtime.config.json` there, next
-  to `feed.db` and `cache.db`. `xtime.config.json` sets the topics, the LLM
+  `nitter.conf` (with a random `hmacKey`) and `xtime.config.jsonc` there, next
+  to `feed.db` and `cache.db`. `xtime.config.jsonc` sets the topics, the LLM
   and its fallbacks, with a comment on each setting. After editing either
   file, run `docker compose restart`.
 - When a scrape fails with "Cookies are expired or invalid", copy fresh values
@@ -132,7 +132,7 @@ root:
 nimble install -y --depsOnly
 nimble scss && nimble md      # the CSS and the About page
 cp nitter.example.conf nitter.conf
-cp xtime.config.example.json xtime.config.json
+cp xtime.config.example.jsonc xtime.config.jsonc
 python3 -m venv .venv && .venv/bin/pip install twifork curl_cffi
 node --env-file=.env make_sessions.mjs
 nim c -d:release -o:./xnitter src/nitter.nim && ./xnitter
@@ -143,7 +143,7 @@ nim c -d:release -o:./xnitter src/nitter.nim && ./xnitter
   your network can use the dashboard, likes and follows included; set
   `address = "127.0.0.1"` to keep it on this machine.
 - Re-run `make_sessions.mjs` after putting new cookies in `.env`.
-- The server reads `nitter.conf`, `sessions.jsonl`, `xtime.config.json`,
+- The server reads `nitter.conf`, `sessions.jsonl`, `xtime.config.jsonc`,
   `feed.db` and `.env` from the folder it starts in. `NITTER_CONF_FILE`,
   `NITTER_SESSIONS_FILE`, `XTIME_CONF_FILE` and `XTIME_DB_FILE` point it
   elsewhere.

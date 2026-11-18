@@ -8,5 +8,5 @@ services:
       - "127.0.0.1:8080:8080" # Replace with "8080:8080" if you don't use a reverse proxy
     env_file: .env # AUTH_TOKEN, CT0 and LLM_API_KEY, see .env.example
     volumes:
-      - ./data:/data # nitter.conf, xtime.config.json and the databases
+      - ./data:/data # nitter.conf, xtime.config.jsonc and the databases
     restart: unless-stopped
